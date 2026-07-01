@@ -270,7 +270,8 @@ function newRoomGame(code){
     posSlots:{host:{G:2,F:2,C:1}, guest:{G:2,F:2,C:1}},
     rosters:{host:[], guest:[]},
     initialFirst: Math.random()<0.5 ? 'host' : 'guest',
-    roundIndex:0, nominationCount:0, auction:null, log:[], over:false, results:null
+    roundIndex:0, nominationCount:0, auction:null, log:[], over:false, results:null,
+    rematch:{host:false, guest:false}
   };
 }
 function otherSide(side){ return side==='host' ? 'guest' : 'host'; }
@@ -380,6 +381,7 @@ function stateForClient(game, side, connected){
       bid:game.auction.bid, bidder:game.auction.bidder, turn:game.auction.turn, openDeclines:game.auction.openDeclines, player:publicPlayer(currentPlayer)
     } : null,
     log: game.log,
+    rematch:{requested: game.rematch || {host:false, guest:false}, connected},
     results: game.results
   };
 }
@@ -472,7 +474,29 @@ export class AuctionRoom {
     this.broadcast();
     return new Response(null, {status:101, webSocket:client});
   }
+  async handleRematch(side){
+    if(!this.game || !this.game.over){ this.broadcast(); return; }
+    if(!this.game.rematch) this.game.rematch = {host:false, guest:false};
+    if(!this.game.rematch[side]){
+      this.game.rematch[side] = true;
+      addLog(this.game, 'sys', `${label(side)} requested a rematch.`);
+    }
+
+    if(this.game.rematch.host && this.game.rematch.guest){
+      const code = this.game.code;
+      const freshGame = newRoomGame(code);
+      freshGame.status = 'active';
+      freshGame.guestJoined = true;
+      addLog(freshGame, 'sys', 'Rematch started with a fresh player pool.');
+      this.game = freshGame;
+    }
+
+    await this.save();
+    this.broadcast();
+  }
+
   async handleAction(side, msg){
+    if(msg && msg.type === 'rematch'){ await this.handleRematch(side); return; }
     if(!this.game || this.game.over){ this.broadcast(); return; }
     if(this.game.status !== 'active'){ this.broadcast(); return; }
     if(!this.sessions.has('host') || !this.sessions.has('guest')){ this.broadcast(); return; }

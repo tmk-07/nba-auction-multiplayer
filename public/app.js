@@ -1061,6 +1061,7 @@ function sendFriendAction(type, payload={}){
 function friendBid(amount){ sendFriendAction('bid', {amount}); }
 function friendPass(){ sendFriendAction('pass'); }
 function friendReveal(){ sendFriendAction('reveal'); }
+function friendRematch(){ sendFriendAction('rematch'); }
 
 function applyFriendStateToG(state){
   const me = state.me;
@@ -1206,6 +1207,15 @@ function renderFriendResults(state){
     return `<tr><td>${p.name}${oopNote}</td><td>${p.pos}</td><td class="num">$${p.price}</td><td>${tag}</td></tr>`;
   }).join('');
 
+  const rematch = state.rematch || {requested:{}, connected:{}};
+  const myRequested = !!(rematch.requested && rematch.requested[state.side]);
+  const oppRequested = !!(rematch.requested && rematch.requested[state.opponent.side]);
+  const oppConnected = !!(state.connected && state.connected[state.opponent.side]);
+  const rematchStatus = myRequested
+    ? (oppRequested ? 'Starting rematch...' : (oppConnected ? 'Rematch requested. Waiting for opponent...' : 'Rematch requested. Waiting for opponent to reconnect...'))
+    : (oppRequested ? 'Opponent wants a rematch.' : (oppConnected ? 'Start a fresh draft with the same room code.' : 'Opponent disconnected. They can reconnect with the same room code before a rematch.'));
+  const rematchButtonText = myRequested ? 'Rematch Requested' : (oppRequested ? 'Accept Rematch' : 'Rematch');
+
   rs.innerHTML = `
     <div class="results">
       <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
@@ -1220,7 +1230,11 @@ function renderFriendResults(state){
       <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.side])}</table>
       <h2>Opponent Roster</h2>
       <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.opponent.side])}</table>
-      <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="showLanding()">Back to Home</button>
+      <div class="results-actions">
+        <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
+        <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>
+      </div>
+      <div class="rematch-status">${rematchStatus}</div>
     </div>`;
 }
 
