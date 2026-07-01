@@ -1,0 +1,1240 @@
+/* ---------------- DATA ---------------- */
+// Real players, roughly tiered by current caliber. Stats are illustrative/approximate
+// (for gameplay feel, not live season stats) since exact numbers shift every year.
+const MASTER = [
+  // Superstar tier
+  {name:"Nikola Jokic", pos:"C", tier:"superstar", ppg:29.6, rpg:12.7, apg:10.2, def:6},
+  {name:"Luka Doncic", pos:"G", tier:"superstar", ppg:28.2, rpg:8.0, apg:7.7, def:4},
+  {name:"Giannis Antetokounmpo", pos:"F", tier:"superstar", ppg:30.9, rpg:11.4, apg:6.1, def:9},
+  {name:"Shai Gilgeous-Alexander", pos:"G", tier:"superstar", ppg:30.1, rpg:5.5, apg:6.2, def:7},
+  {name:"Jayson Tatum", pos:"F", tier:"superstar", ppg:26.8, rpg:8.7, apg:5.8, def:7},
+  {name:"Victor Wembanyama", pos:"C", tier:"superstar", ppg:24.3, rpg:11.0, apg:3.9, def:9},
+  {name:"Anthony Edwards", pos:"G", tier:"superstar", ppg:27.6, rpg:5.7, apg:4.5, def:6},
+  {name:"Kevin Durant", pos:"F", tier:"superstar", ppg:27.1, rpg:6.6, apg:4.2, def:6},
+  {name:"Joel Embiid", pos:"C", tier:"superstar", ppg:27.6, rpg:10.9, apg:5.2, def:8},
+  {name:"LeBron James", pos:"F", tier:"superstar", ppg:24.4, rpg:7.8, apg:8.2, def:5},
+
+  // Star tier
+  {name:"Stephen Curry", pos:"G", tier:"star", ppg:24.5, rpg:4.4, apg:5.9, def:4},
+  {name:"Devin Booker", pos:"G", tier:"star", ppg:25.6, rpg:4.4, apg:6.9, def:5},
+  {name:"Kawhi Leonard", pos:"F", tier:"star", ppg:23.7, rpg:6.1, apg:3.6, def:9},
+  {name:"Anthony Davis", pos:"F", tier:"star", ppg:24.7, rpg:11.6, apg:3.5, def:8},
+  {name:"Donovan Mitchell", pos:"G", tier:"star", ppg:26.1, rpg:4.9, apg:5.1, def:5},
+  {name:"Jaylen Brown", pos:"F", tier:"star", ppg:23.0, rpg:5.5, apg:3.6, def:7},
+  {name:"Tyrese Haliburton", pos:"G", tier:"star", ppg:18.6, rpg:3.7, apg:9.2, def:4},
+  {name:"Paolo Banchero", pos:"F", tier:"star", ppg:25.9, rpg:7.5, apg:4.1, def:5},
+  {name:"Ja Morant", pos:"G", tier:"star", ppg:23.2, rpg:4.0, apg:7.3, def:5},
+  {name:"Trae Young", pos:"G", tier:"star", ppg:22.5, rpg:3.0, apg:11.6, def:3},
+  {name:"Jalen Brunson", pos:"G", tier:"star", ppg:26.0, rpg:3.5, apg:6.7, def:4},
+  {name:"Damian Lillard", pos:"G", tier:"star", ppg:24.9, rpg:4.7, apg:7.1, def:3},
+  {name:"Kyrie Irving", pos:"G", tier:"star", ppg:24.7, rpg:4.8, apg:4.6, def:4},
+  {name:"Jimmy Butler", pos:"F", tier:"star", ppg:17.5, rpg:5.4, apg:4.8, def:8},
+  {name:"Cade Cunningham", pos:"G", tier:"star", ppg:26.1, rpg:6.1, apg:9.1, def:4},
+  {name:"Alperen Sengun", pos:"C", tier:"star", ppg:19.1, rpg:10.3, apg:4.9, def:6},
+
+  // Starter tier
+  {name:"Domantas Sabonis", pos:"C", tier:"starter", ppg:19.4, rpg:13.6, apg:5.9, def:5},
+  {name:"DeMar DeRozan", pos:"F", tier:"starter", ppg:22.0, rpg:4.3, apg:5.0, def:4},
+  {name:"Bam Adebayo", pos:"C", tier:"starter", ppg:16.7, rpg:9.6, apg:4.0, def:8},
+  {name:"Zion Williamson", pos:"F", tier:"starter", ppg:21.6, rpg:6.8, apg:4.7, def:5},
+  {name:"Julius Randle", pos:"F", tier:"starter", ppg:20.9, rpg:7.5, apg:4.7, def:4},
+  {name:"Karl-Anthony Towns", pos:"C", tier:"starter", ppg:22.5, rpg:11.1, apg:3.3, def:4},
+  {name:"Pascal Siakam", pos:"F", tier:"starter", ppg:20.2, rpg:6.9, apg:3.5, def:6},
+  {name:"Jrue Holiday", pos:"G", tier:"starter", ppg:12.5, rpg:4.6, apg:4.8, def:8},
+  {name:"CJ McCollum", pos:"G", tier:"starter", ppg:20.1, rpg:4.1, apg:4.2, def:4},
+  {name:"Tyler Herro", pos:"G", tier:"starter", ppg:23.9, rpg:5.5, apg:5.2, def:3},
+  {name:"Desmond Bane", pos:"G", tier:"starter", ppg:19.2, rpg:6.1, apg:5.3, def:5},
+  {name:"Brandon Ingram", pos:"F", tier:"starter", ppg:22.2, rpg:5.6, apg:5.2, def:4},
+  {name:"Scottie Barnes", pos:"F", tier:"starter", ppg:19.3, rpg:7.7, apg:5.8, def:7},
+  {name:"Franz Wagner", pos:"F", tier:"starter", ppg:24.1, rpg:5.7, apg:4.7, def:6},
+  {name:"Darius Garland", pos:"G", tier:"starter", ppg:20.6, rpg:2.9, apg:6.7, def:4},
+  {name:"Myles Turner", pos:"C", tier:"starter", ppg:15.6, rpg:6.5, apg:1.5, def:8},
+  {name:"Jarrett Allen", pos:"C", tier:"starter", ppg:13.5, rpg:9.7, apg:1.9, def:8},
+  {name:"Rudy Gobert", pos:"C", tier:"starter", ppg:12.0, rpg:10.9, apg:1.8, def:9},
+  {name:"Chet Holmgren", pos:"C", tier:"starter", ppg:15.0, rpg:8.0, apg:2.0, def:8},
+
+  // Role tier
+  {name:"Herbert Jones", pos:"F", tier:"role", ppg:11.2, rpg:4.1, apg:2.1, def:9},
+  {name:"Mikal Bridges", pos:"F", tier:"role", ppg:17.6, rpg:4.2, apg:3.3, def:8},
+  {name:"Jalen Williams", pos:"F", tier:"role", ppg:19.5, rpg:4.5, apg:4.6, def:6},
+  {name:"Alex Caruso", pos:"G", tier:"role", ppg:9.8, rpg:3.7, apg:3.6, def:9},
+  {name:"Klay Thompson", pos:"G", tier:"role", ppg:14.2, rpg:3.1, apg:2.2, def:5},
+  {name:"Draymond Green", pos:"F", tier:"role", ppg:8.5, rpg:6.9, apg:6.0, def:9},
+  {name:"Aaron Gordon", pos:"F", tier:"role", ppg:14.4, rpg:6.5, apg:3.4, def:6},
+  {name:"Bruce Brown", pos:"G", tier:"role", ppg:9.1, rpg:3.7, apg:2.5, def:6},
+  {name:"OG Anunoby", pos:"F", tier:"role", ppg:18.0, rpg:4.8, apg:2.2, def:9},
+  {name:"Derrick White", pos:"G", tier:"role", ppg:16.4, rpg:4.5, apg:4.8, def:8},
+  {name:"Austin Reaves", pos:"G", tier:"role", ppg:20.2, rpg:4.5, apg:5.8, def:4},
+  {name:"Josh Hart", pos:"F", tier:"role", ppg:13.6, rpg:9.6, apg:5.9, def:6},
+  {name:"Brook Lopez", pos:"C", tier:"role", ppg:13.0, rpg:5.0, apg:1.8, def:8},
+  {name:"Mike Conley", pos:"G", tier:"role", ppg:8.2, rpg:2.6, apg:4.5, def:6},
+  {name:"Kentavious Caldwell-Pope", pos:"G", tier:"role", ppg:8.7, rpg:2.2, apg:2.0, def:7},
+  {name:"Jaden McDaniels", pos:"F", tier:"role", ppg:12.2, rpg:3.0, apg:1.4, def:8},
+  {name:"Andrew Wiggins", pos:"F", tier:"role", ppg:18.0, rpg:4.5, apg:2.6, def:6},
+  {name:"Donte DiVincenzo", pos:"G", tier:"role", ppg:11.7, rpg:3.7, apg:3.6, def:5},
+  {name:"Norman Powell", pos:"G", tier:"role", ppg:21.8, rpg:3.2, apg:2.1, def:4},
+  {name:"Tobias Harris", pos:"F", tier:"role", ppg:13.7, rpg:5.9, apg:2.2, def:4},
+
+  // Bench tier
+  {name:"Gary Trent Jr.", pos:"G", tier:"bench", ppg:11.8, rpg:2.2, apg:1.3, def:5},
+  {name:"Naz Reid", pos:"C", tier:"bench", ppg:14.2, rpg:5.6, apg:2.0, def:5},
+  {name:"Bobby Portis", pos:"F", tier:"bench", ppg:13.6, rpg:7.4, apg:1.3, def:4},
+  {name:"Delon Wright", pos:"G", tier:"bench", ppg:6.5, rpg:2.9, apg:3.3, def:6},
+  {name:"Kelly Olynyk", pos:"C", tier:"bench", ppg:9.0, rpg:4.6, apg:2.6, def:3},
+  {name:"Cody Martin", pos:"F", tier:"bench", ppg:6.8, rpg:3.4, apg:1.8, def:6},
+  {name:"Duncan Robinson", pos:"G", tier:"bench", ppg:12.9, rpg:2.4, apg:2.0, def:2},
+  {name:"Jae'Sean Tate", pos:"F", tier:"bench", ppg:7.9, rpg:4.0, apg:2.3, def:6},
+  {name:"Malik Monk", pos:"G", tier:"bench", ppg:17.2, rpg:3.8, apg:5.6, def:3},
+  {name:"Payton Pritchard", pos:"G", tier:"bench", ppg:14.3, rpg:3.8, apg:3.5, def:4},
+  {name:"Luke Kennard", pos:"G", tier:"bench", ppg:8.9, rpg:2.8, apg:3.3, def:3},
+  {name:"T.J. McConnell", pos:"G", tier:"bench", ppg:9.1, rpg:2.4, apg:4.4, def:5},
+  {name:"Al Horford", pos:"C", tier:"bench", ppg:9.0, rpg:6.2, apg:2.1, def:7},
+  {name:"Kevon Looney", pos:"C", tier:"bench", ppg:4.5, rpg:6.1, apg:1.6, def:6},
+  {name:"Max Strus", pos:"G", tier:"bench", ppg:9.4, rpg:4.3, apg:3.2, def:4},
+  {name:"Obi Toppin", pos:"F", tier:"bench", ppg:10.5, rpg:4.0, apg:1.6, def:3},
+  {name:"Grayson Allen", pos:"G", tier:"bench", ppg:10.6, rpg:3.0, apg:2.1, def:4},
+  {name:"Caris LeVert", pos:"G", tier:"bench", ppg:10.2, rpg:2.8, apg:3.7, def:4},
+];
+const TIER_BASE = {superstar:95, star:72, starter:50, role:30, bench:15};
+const TIER_VALUE_BOUNDS = {
+  superstar:{min:86, max:100},
+  star:{min:66, max:84},
+  starter:{min:45, max:63},
+  role:{min:26, max:44},
+  bench:{min:10, max:25},
+};
+const STAR_POWER_FIXED_MAX = 100;
+
+// Stat-to-value formula. It is deterministic: same player, same true value every game.
+// Values are normalized within each tier, then clamped to that tier's bounds.
+const STAT_WEIGHTS = {ppg:1.55, rpg:1.15, apg:1.35, def:3.75};
+function statComposite(p){
+  return p.ppg*STAT_WEIGHTS.ppg + p.rpg*STAT_WEIGHTS.rpg + p.apg*STAT_WEIGHTS.apg + p.def*STAT_WEIGHTS.def;
+}
+function tierStatRange(tier){
+  const vals = MASTER.filter(p=>p.tier===tier).map(statComposite);
+  return {min:Math.min(...vals), max:Math.max(...vals)};
+}
+const TIER_STAT_RANGES = Object.fromEntries(Object.keys(TIER_BASE).map(t=>[t, tierStatRange(t)]));
+function statBasedTrueValue(player){
+  const bounds = TIER_VALUE_BOUNDS[player.tier];
+  const range = TIER_STAT_RANGES[player.tier];
+  const rawNorm = range.max===range.min ? 0.5 : (statComposite(player)-range.min)/(range.max-range.min);
+  const norm = clamp(rawNorm,0,1);
+  return clamp(Math.round(bounds.min + norm*(bounds.max-bounds.min)), bounds.min, bounds.max);
+}
+
+const POOL_PROFILES = [
+  {name:"Superteam Showcase", desc:"A loaded class — 4 superstars, 3 stars, and 3 random depth pieces.", groups:[
+    {tiers:["superstar"], count:4}, {tiers:["star"], count:3}, {tiers:["starter","role","bench"], count:3}
+  ]},
+  {name:"Balanced", desc:"A mixed class — 5 from the top two tiers, 4 from starter/role, and 1 bench piece.", groups:[
+    {tiers:["superstar","star"], count:5}, {tiers:["starter","role"], count:4}, {tiers:["bench"], count:1}
+  ]},
+  {name:"Top Heavy", desc:"Three superstars headline the draft, then seven role/bench players fill out the board.", groups:[
+    {tiers:["superstar"], count:3}, {tiers:["role","bench"], count:7}
+  ]},
+  {name:"Deep Sleeper", desc:"Only one superstar appears — the rest of the draft is about finding starter, role, and bench value.", groups:[
+    {tiers:["superstar"], count:1}, {tiers:["starter","role"], count:4}, {tiers:["bench"], count:5}
+  ]},
+];
+
+const BOT_PERSONAS = [
+  {
+    name:"Star Chaser",
+    flavor:"This bot is aggressive on premium names and is willing to pay up for top-tier talent.",
+    tierMult:{superstar:1.24, star:1.13, starter:0.99, role:0.88, bench:0.78},
+    statMult:{ppg:1.14, rpg:0.94, apg:1.00, def:0.88},
+    budgetDiscipline:1.08, aggression:0.94, caution:0.32, floor:0.42,
+    pricePressure:0.16, pressureRisk:0.92
+  },
+  {
+    name:"Value Hunter",
+    flavor:"This bot is disciplined, avoids bidding wars, and still scales spending with player quality.",
+    tierMult:{superstar:1.02, star:0.99, starter:0.94, role:0.88, bench:0.80},
+    statMult:{ppg:0.98, rpg:1.04, apg:1.05, def:1.05},
+    budgetDiscipline:0.86, aggression:0.80, caution:0.48, floor:0.28,
+    pricePressure:0.34, pressureRisk:0.88
+  },
+  {
+    name:"Balanced Builder",
+    flavor:"This bot plays close to the board and tries to build a clean, well-rounded roster.",
+    tierMult:{superstar:1.08, star:1.03, starter:0.97, role:0.90, bench:0.83},
+    statMult:{ppg:1.00, rpg:1.00, apg:1.00, def:1.00},
+    budgetDiscipline:0.98, aggression:0.87, caution:0.39, floor:0.34,
+    pricePressure:0.24, pressureRisk:0.86
+  },
+  {
+    name:"Cap Manager",
+    flavor:"This bot is cautious with the budget, but still reserves its biggest bids for the best players.",
+    tierMult:{superstar:1.05, star:1.00, starter:0.93, role:0.86, bench:0.78},
+    statMult:{ppg:0.96, rpg:1.03, apg:1.02, def:1.08},
+    budgetDiscipline:0.78, aggression:0.76, caution:0.52, floor:0.25,
+    pricePressure:0.30, pressureRisk:0.84
+  },
+];
+
+/* ---------------- STATE ---------------- */
+let G = null;
+
+function rand(min,max){ return min + Math.random()*(max-min); }
+function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function clamp(v,lo,hi){ return Math.max(lo,Math.min(hi,v)); }
+
+function samplePlayers(tiers, count, selectedNames){
+  const options = shuffle(MASTER.filter(p=>tiers.includes(p.tier) && !selectedNames.has(p.name)));
+  return options.slice(0,count);
+}
+
+function buildPool(){
+  const profile = pick(POOL_PROFILES);
+  const selected = [];
+  const selectedNames = new Set();
+  profile.groups.forEach(group=>{
+    const picks = samplePlayers(group.tiers, group.count, selectedNames);
+    picks.forEach(p=>{
+      selected.push(p);
+      selectedNames.add(p.name);
+    });
+  });
+  // Order = the sequence players will be revealed in, one at a time. Neither
+  // side gets to see this list ahead of time.
+  const order = shuffle(selected).map((p,idx)=>{
+    const trueValue = statBasedTrueValue(p);
+    return {
+      id: "p"+idx, name:p.name, pos:p.pos, tier:p.tier,
+      trueValue, ppg:p.ppg, rpg:p.rpg, apg:p.apg, def:p.def, drafted:false
+    };
+  });
+  return {profile, order};
+}
+
+function positionalFitMultiplier(side, player){
+  if(!G || !G.posSlots || !G.posSlots[side]) return 1;
+  const slots = G.posSlots[side];
+  if(G.slots[side]<=0) return 0;
+  if(slots[player.pos] > 0) return 1.06;
+  let bestDist = Infinity;
+  ['G','F','C'].forEach(pos=>{
+    if(slots[pos] > 0) bestDist = Math.min(bestDist, posDistance(player.pos, pos));
+  });
+  if(bestDist===Infinity) return 0;
+  return bestDist===1 ? 0.94 : 0.82;
+}
+
+function botEstimate(player, persona, side='bot'){
+  // The estimate is stable for a given player/persona: no random value wobble.
+  // The bot's strategy changes how it weights tier, stats, and roster fit.
+  const baseValue = statBasedTrueValue(player);
+  const neutralComposite = statComposite(player);
+  const personaComposite = player.ppg*STAT_WEIGHTS.ppg*persona.statMult.ppg
+    + player.rpg*STAT_WEIGHTS.rpg*persona.statMult.rpg
+    + player.apg*STAT_WEIGHTS.apg*persona.statMult.apg
+    + player.def*STAT_WEIGHTS.def*persona.statMult.def;
+  const statTilt = neutralComposite===0 ? 1 : personaComposite/neutralComposite;
+  const fit = positionalFitMultiplier(side, player);
+  return Math.round(baseValue * persona.tierMult[player.tier] * statTilt * fit);
+}
+
+function estimateToBidCap(estimate, persona, player){
+  const tierAnchor = {superstar:13, star:10, starter:7, role:4, bench:2}[player.tier];
+  const statAnchor = clamp(Math.round((estimate - 8) / 7), 1, 15);
+  return clamp(Math.round((tierAnchor*0.4 + statAnchor*0.6) * persona.budgetDiscipline), 1, 15);
+}
+
+function neutralBidCap(player, side='bot'){
+  const neutralEstimate = statBasedTrueValue(player) * positionalFitMultiplier(side, player);
+  return estimateToBidCap(neutralEstimate, {budgetDiscipline:1}, player);
+}
+
+function botPricePressureDecision(player, persona, nextBid, normalWillingness, est, leverage=false){
+  // The bot can make calculated pressure bids when the human is currently winning.
+  // This is not a true desire cap; it is a risk-adjusted attempt to make strong
+  // players cost closer to fair value. If the human stops, the bot might get stuck
+  // with the player, so the pressure cap stays below the bot's neutral fair price.
+  if(!G || !G.auction || G.auction.bidder !== 'user') return false;
+  if(G.auction.bid <= 0 || leverage || G.slots.bot <= 0 || G.slots.user <= 0) return false;
+  if(nextBid > maxBid('bot')) return false;
+  // Do not pressure-bid when the human cannot actually respond. That turns a
+  // nuisance raise into a near-certain accidental win.
+  if(nextBid + 1 > maxBid('user')) return false;
+  if(player.tier === 'bench') return false;
+
+  const fairCap = neutralBidCap(player, 'bot');
+  const pressureCap = Math.min(maxBid('bot'), Math.max(normalWillingness, Math.round(fairCap * persona.pressureRisk)));
+  if(nextBid > pressureCap) return false;
+
+  const quality = {
+    superstar:1.00,
+    star:0.76,
+    starter:0.42,
+    role:0.18,
+    bench:0.00,
+  }[player.tier] || 0.35;
+  const highEndBoost = player.tier==='superstar' && est >= 90 ? 0.12 : 0;
+  const cheapEnoughBoost = nextBid <= Math.max(3, normalWillingness + 1) ? 0.08 : 0;
+  const riskProgress = nextBid / Math.max(pressureCap,1);
+  const chance = clamp((persona.pricePressure || 0) * quality * (1 - riskProgress*0.55) + highEndBoost + cheapEnoughBoost, 0, 0.55);
+  const decision = Math.random() < chance;
+  if(decision){
+    debugMsg(`${persona.name} pressure-bids ${player.name}: next $${nextBid}, normal cap $${normalWillingness}, pressure cap $${pressureCap}, chance ${(chance*100).toFixed(0)}%.`);
+  }
+  return decision;
+}
+
+function botLateDraftLeverage(player, est, normalWillingness, persona){
+  // If the user has only one roster spot left while the bot still needs multiple
+  // players, the bot should not artificially protect money beyond the $1-per-slot
+  // reserve. It can win this player and still fill the rest later, mostly
+  // uncontested, so good players get the full maxBid treatment.
+  if(!G || G.slots.user !== 1 || G.slots.bot <= 1) return false;
+  if(G.slots.bot <= G.slots.user) return false;
+
+  const qualityFloorByPersona = {
+    'Star Chaser': 4,
+    'Balanced Builder': 5,
+    'Value Hunter': 6,
+    'Cap Manager': 6,
+  };
+  const qualityFloor = qualityFloorByPersona[persona.name] || 5;
+  if(player.tier==='superstar' || player.tier==='star') return true;
+  if(player.tier==='starter' && normalWillingness >= qualityFloor) return true;
+  if(player.tier==='role' && normalWillingness >= qualityFloor + 2 && est >= 42) return true;
+  return false;
+}
+
+function botPushProbability(nextBid, cap, player, persona, leverage=false){
+  if(leverage) return 1;
+  const progress = nextBid / Math.max(cap,1);
+  let p = persona.aggression - progress*persona.caution;
+  if(persona.name==='Star Chaser' && (player.tier==='superstar' || player.tier==='star')) p += 0.06;
+  if(persona.name==='Cap Manager' && progress > 0.65) p -= 0.06;
+  if(persona.name==='Value Hunter' && progress > 0.7) p -= 0.08;
+  return clamp(p, persona.floor, 0.96);
+}
+
+/* ---------------- POSITIONS ---------------- */
+// Strict roster shape: 2 Guards, 2 Forwards, 1 Center per team.
+// After each win, the whole roster is re-optimized into G/G/F/F/C slots.
+// Out-of-position value penalties scale by distance from natural position
+// (G<->F is a short hop, G<->C is a big one).
+const POS_INDEX = {G:0, F:1, C:2};
+function posDistance(a,b){ return Math.abs(POS_INDEX[a]-POS_INDEX[b]); }
+function penaltyMultiplier(dist){ return dist===0 ? 1 : (dist===1 ? 0.92 : 0.78); }
+
+function optimizeRosterPositions(side){
+  const roster = G.rosters[side];
+  const slotLayout = ['G','G','F','F','C'];
+  const used = Array(slotLayout.length).fill(false);
+  const assignment = Array(roster.length).fill(null);
+  let bestAssignment = null;
+  let bestScore = -Infinity;
+  let bestDistance = Infinity;
+
+  function search(playerIdx, score, distanceTotal){
+    if(playerIdx >= roster.length){
+      if(score > bestScore || (score===bestScore && distanceTotal < bestDistance)){
+        bestScore = score;
+        bestDistance = distanceTotal;
+        bestAssignment = assignment.slice();
+      }
+      return;
+    }
+    const player = roster[playerIdx];
+    for(let slotIdx=0; slotIdx<slotLayout.length; slotIdx++){
+      if(used[slotIdx]) continue;
+      const assignedPos = slotLayout[slotIdx];
+      const dist = posDistance(player.pos, assignedPos);
+      const adjusted = Math.round(player.trueValue * penaltyMultiplier(dist));
+      used[slotIdx] = true;
+      assignment[playerIdx] = assignedPos;
+      search(playerIdx+1, score+adjusted, distanceTotal+dist);
+      assignment[playerIdx] = null;
+      used[slotIdx] = false;
+    }
+  }
+
+  search(0, 0, 0);
+
+  const remaining = {G:2, F:2, C:1};
+  roster.forEach((player, idx)=>{
+    const assignedPos = bestAssignment ? bestAssignment[idx] : player.pos;
+    const dist = posDistance(player.pos, assignedPos);
+    player.assignedPos = assignedPos;
+    player.posPenaltyDist = dist;
+    player.adjustedValue = Math.round(player.trueValue * penaltyMultiplier(dist));
+    remaining[assignedPos] -= 1;
+  });
+  G.posSlots[side] = remaining;
+}
+
+function assignPosition(side, player){
+  // Kept as the public hook after a win, but it now optimizes the whole roster
+  // instead of greedily locking earlier picks into inefficient slots.
+  optimizeRosterPositions(side);
+}
+
+function posNeedStr(side){
+  const s = G.posSlots[side];
+  const parts = [];
+  if(s.G>0) parts.push(s.G+' G');
+  if(s.F>0) parts.push(s.F+' F');
+  if(s.C>0) parts.push(s.C+' C');
+  return parts.length ? 'needs '+parts.join(', ') : 'roster full';
+}
+
+/* ---------------- GAME INIT ---------------- */
+function newGame(){
+  APP_MODE = 'bot';
+  disconnectFriend();
+  setGameLabels('Bot');
+  const {profile, order} = buildPool();
+  const persona = pick(BOT_PERSONAS);
+  const initialFirst = Math.random()<0.5 ? 'user' : 'bot';
+  G = {
+    profile, persona, order,
+    budgets:{user:20, bot:20},
+    slots:{user:5, bot:5},
+    posSlots:{user:{G:2,F:2,C:1}, bot:{G:2,F:2,C:1}},
+    rosters:{user:[], bot:[]},
+    initialFirst,
+    roundIndex: 0,
+    nominationCount: 0,
+    auction: null,
+    log: [],
+    over:false
+  };
+  debugMsg(`Talent pool locked in: "${profile.name}" — ${profile.desc}`);
+  debugMsg(`Bot rival scouting profile: ${persona.name} — ${persona.flavor}`);
+  debugMsg(`Players will be revealed one at a time — nobody knows who's coming next.`);
+  render();
+  startRound(0);
+}
+
+function debugMsg(text){
+  console.info('[NBA Auction]', text);
+}
+
+function logMsg(who, text){
+  G.log.push({who, text});
+  const box = document.getElementById('logBox');
+  if(box){
+    const d = document.createElement('div');
+    d.className = who+'-log';
+    d.textContent = text;
+    box.appendChild(d);
+    box.scrollTop = box.scrollHeight;
+  }
+}
+
+/* ---------------- BID LOGIC HELPERS ---------------- */
+function maxBid(side){
+  if(G.slots[side]<=0) return 0;
+  const slotsAfterThis = G.slots[side]-1; // reserve $1 for every OTHER remaining slot
+  return G.budgets[side] - slotsAfterThis;
+}
+
+/* ---------------- SEQUENTIAL REVEAL ---------------- */
+// The game (not either player) decides who comes up next. Order was shuffled
+// once at pool-build time and neither side can see ahead in it. If a player is
+// passed by both sides before any bid is placed, that player is moved to the back of the pool.
+function firstBidderFor(nominationNumber){
+  let f = (nominationNumber % 2 === 0) ? G.initialFirst : (G.initialFirst==='user'?'bot':'user');
+  if(G.slots[f]<=0) f = f==='user'?'bot':'user'; // skip a side that already filled its roster
+  return f;
+}
+
+function startRound(idx){
+  if(maybeAutoFillAfterRosterFull()) return;
+  if(idx >= G.order.length){ endGame(); return; }
+  const player = G.order[idx];
+  const opener = firstBidderFor(G.nominationCount);
+  G.nominationCount += 1;
+  logMsg('sys', `Player ${G.roundIndex+1} of ${G.order.length} revealed: ${player.name}. ${opener==='user'?'You':'Bot'} gets first action.`);
+  startAuction(player.id, opener);
+}
+
+function startAuction(playerId, opener){
+  G.auction = { playerId, bid:0, bidder:null, turn:opener, openDeclines:{user:false, bot:false} };
+  render();
+  if(G.auction.turn==='bot') setTimeout(botAuctionMove, 700);
+}
+
+function otherSide(side){ return side==='user' ? 'bot' : 'user'; }
+
+function recycleAuctionPlayer(){
+  if(!G.auction) return;
+  const idx = G.order.findIndex(p=>p.id===G.auction.playerId);
+  if(idx < 0) return;
+  const [player] = G.order.splice(idx,1);
+  G.order.push(player);
+  logMsg('sys', `No opening bid — ${player.name} moves to the back of the pool.`);
+  G.auction = null;
+  render();
+}
+
+function availableUndraftedPlayers(){
+  return G.order.filter(p=>!p.drafted);
+}
+
+function autoFillRemainingRoster(side){
+  if(G.slots[side] <= 0) return;
+  const needed = G.slots[side];
+  const candidates = availableUndraftedPlayers().slice(0, needed);
+  if(!candidates.length) return;
+  logMsg('sys', `${side==='user'?'Your':'Bot'} remaining ${needed} roster spot${needed===1?'':'s'} ${needed===1?'is':'are'} filled automatically because the other roster is full.`);
+  candidates.forEach(player=>{
+    const price = 1;
+    player.drafted = true;
+    player.soldTo = side;
+    player.soldPrice = price;
+    G.budgets[side] -= price;
+    G.slots[side] -= 1;
+    G.rosters[side].push(player);
+    assignPosition(side, player);
+    logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} automatically for $${price}.`);
+  });
+}
+
+function maybeAutoFillAfterRosterFull(){
+  if(G.slots.user <= 0 && G.slots.bot > 0){
+    autoFillRemainingRoster('bot');
+    endGame();
+    return true;
+  }
+  if(G.slots.bot <= 0 && G.slots.user > 0){
+    autoFillRemainingRoster('user');
+    endGame();
+    return true;
+  }
+  if(G.slots.user <= 0 && G.slots.bot <= 0){
+    endGame();
+    return true;
+  }
+  return false;
+}
+
+function passBeforeOpeningBid(side){
+  if(!G.auction || G.auction.bidder) return;
+  const player = G.order.find(p=>p.id===G.auction.playerId);
+  G.auction.openDeclines[side] = true;
+  logMsg(side==='user'?'you':'bot', `${side==='user'?'You':'Bot'} pass before bidding on ${player.name}.`);
+
+  const other = otherSide(side);
+  if(G.slots[other] > 0 && !G.auction.openDeclines[other]){
+    G.auction.turn = other;
+    logMsg('sys', `${other==='user'?'You still have':'Bot still has'} the option to open bidding on ${player.name}.`);
+    render();
+    if(other==='bot') setTimeout(botAuctionMove, 700);
+    return;
+  }
+
+  recycleAuctionPlayer();
+}
+
+/* ---------------- BIDDING ---------------- */
+function userRaise(amount){
+  if(!G.auction || G.auction.turn!=='user' || G.slots.user<=0) return;
+  const openingBid = G.auction.bid===0;
+  const newBid = G.auction.bid + amount;
+  if(newBid > maxBid('user')) return;
+  G.auction.bid = newBid;
+  G.auction.bidder = 'user';
+  G.auction.turn = 'bot';
+  logMsg('you', openingBid ? `You open at $${newBid}.` : `You raise to $${newBid}.`);
+  render();
+  setTimeout(botAuctionMove, 700);
+}
+
+function userPass(){
+  if(!G.auction || G.auction.turn!=='user') return;
+  if(G.slots.user<=0){ maybeAutoFillAfterRosterFull(); return; }
+  if(!G.auction.bidder){
+    passBeforeOpeningBid('user');
+    return;
+  }
+  logMsg('you', `You pass at $${G.auction.bid}.`);
+  resolveAuction(G.auction.bidder);
+}
+
+function botOpeningProbability(player, cap, est, persona){
+  const baseByTier = {superstar:0.98, star:0.92, starter:0.78, role:0.58, bench:0.40};
+  let p = baseByTier[player.tier] || 0.65;
+  if(persona.name==='Star Chaser') p += (player.tier==='superstar' || player.tier==='star') ? 0.04 : -0.08;
+  if(persona.name==='Value Hunter') p -= player.tier==='bench' ? 0.08 : 0.03;
+  if(persona.name==='Cap Manager') p -= 0.10;
+  if(persona.name==='Balanced Builder') p += 0.00;
+  if(cap >= 8) p += 0.04;
+  if(cap <= 2) p -= 0.08;
+  // When the draft is getting tight, the bot becomes less willing to punt every option.
+  const botOpenSlots = G.slots.bot;
+  const undraftedLeft = G.order.length - G.roundIndex;
+  if(botOpenSlots >= undraftedLeft - 1) p += 0.18;
+  return clamp(p, 0.18, 0.99);
+}
+
+function botAuctionMove(){
+  if(!G.auction || G.auction.turn!=='bot') return;
+  if(G.slots.bot<=0){ maybeAutoFillAfterRosterFull(); return; }
+  const player = G.order.find(p=>p.id===G.auction.playerId);
+  const est = botEstimate(player, G.persona, 'bot');
+  const normalWillingness = estimateToBidCap(est, G.persona, player);
+  const leverage = botLateDraftLeverage(player, est, normalWillingness, G.persona);
+  const finalSpotMustFill = G.slots.bot === 1;
+  // If the bot only has one roster spot left, saving money no longer matters.
+  // It should not voluntarily pass/send a player back; it pushes until its real budget cap.
+  const willingness = (finalSpotMustFill || leverage) ? maxBid('bot') : normalWillingness;
+  const cap = Math.min(willingness, maxBid('bot'));
+  const nextBid = G.auction.bid + 1;
+  const openingBid = G.auction.bid===0;
+
+  if(nextBid > cap){
+    if(!openingBid && botPricePressureDecision(player, G.persona, nextBid, normalWillingness, est, leverage)){
+      G.auction.bid = nextBid;
+      G.auction.bidder = 'bot';
+      G.auction.turn = 'user';
+      logMsg('bot', `Bot raises to $${nextBid}.`);
+      render();
+      return;
+    }
+    // This is the only final-slot exception: the bot cannot bid money it does not have.
+    if(openingBid){
+      passBeforeOpeningBid('bot');
+    } else {
+      logMsg('bot', `Bot passes on ${player.name} at $${G.auction.bid}.`);
+      resolveAuction(G.auction.bidder);
+    }
+    return;
+  }
+
+  if(openingBid){
+    const wantsToOpen = finalSpotMustFill || leverage || Math.random() < botOpeningProbability(player, cap, est, G.persona);
+    if(!wantsToOpen){
+      passBeforeOpeningBid('bot');
+      return;
+    }
+  } else {
+    // Occasionally the bot backs off before its cap, with the chance controlled by persona.
+    // Final-slot and leverage situations override that hesitation.
+    const pushThrough = finalSpotMustFill || Math.random() < botPushProbability(nextBid, cap, player, G.persona, leverage);
+    if(!pushThrough){
+      if(botPricePressureDecision(player, G.persona, nextBid, normalWillingness, est, leverage)){
+        G.auction.bid = nextBid;
+        G.auction.bidder = 'bot';
+        G.auction.turn = 'user';
+        logMsg('bot', `Bot raises to $${nextBid}.`);
+        render();
+        return;
+      }
+      logMsg('bot', `Bot passes on ${player.name} at $${G.auction.bid}.`);
+      resolveAuction(G.auction.bidder);
+      return;
+    }
+  }
+
+  G.auction.bid = nextBid;
+  G.auction.bidder = 'bot';
+  G.auction.turn = 'user';
+  logMsg('bot', openingBid ? `Bot opens at $${nextBid}.` : `Bot raises to $${nextBid}.`);
+  render();
+}
+
+function resolveAuction(winnerSide){
+  if(!G.auction || !winnerSide) return;
+  const player = G.order.find(p=>p.id===G.auction.playerId);
+  const price = G.auction.bid;
+  if(price <= 0){ recycleAuctionPlayer(); return; }
+  player.drafted = true;
+  player.soldTo = winnerSide;
+  player.soldPrice = price;
+  G.budgets[winnerSide] -= price;
+  G.slots[winnerSide] -= 1;
+  G.rosters[winnerSide].push(player);
+  assignPosition(winnerSide, player);
+  logMsg('sys', `${winnerSide==='user'?'YOU win':'BOT wins'} ${player.name} for $${price} — slotted at ${player.assignedPos}${player.assignedPos!==player.pos?' (off natural position)':''}.`);
+  G.auction = null;
+  G.roundIndex += 1;
+
+  if(maybeAutoFillAfterRosterFull()) return;
+  if(G.roundIndex >= G.order.length){
+    endGame();
+    return;
+  }
+  render(); // shows the "Reveal Next Player" prompt
+}
+
+/* ---------------- RESULTS ---------------- */
+/* ---------------- RESULTS ---------------- */
+function topNSum(arr, n){ return arr.slice().sort((a,b)=>b-a).slice(0,n).reduce((a,b)=>a+b,0); }
+function topNAvg(arr, n){ const vals = arr.slice().sort((a,b)=>b-a).slice(0,n); return vals.length ? vals.reduce((a,b)=>a+b,0)/vals.length : 0; }
+
+function teamRawAdj(side){
+  const roster = G.rosters[side];
+  return {
+    raw: roster.reduce((s,p)=>s+p.trueValue,0),
+    adj: roster.reduce((s,p)=>s+p.adjustedValue,0)
+  };
+}
+
+function teamAxes(side, maxes){
+  const roster = G.rosters[side];
+  const sumPpg = roster.reduce((s,p)=>s+p.ppg,0);
+  const sumRpg = roster.reduce((s,p)=>s+p.rpg,0);
+  const sumApg = roster.reduce((s,p)=>s+p.apg,0);
+  const sumDef = roster.reduce((s,p)=>s+p.def,0);
+  const teamTop3Avg = topNAvg(roster.map(p=>p.trueValue), 3);
+  const poolScaledStarPower = maxes.starPowerPoolAvg ? teamTop3Avg/maxes.starPowerPoolAvg*100 : 0;
+  const fixedScaledStarPower = teamTop3Avg/STAR_POWER_FIXED_MAX*100;
+  const starPower = clamp(Math.round((poolScaledStarPower + fixedScaledStarPower)/2),0,100);
+  return [
+    clamp(Math.round(sumPpg/maxes.ppg*100),0,100),
+    clamp(Math.round(sumRpg/maxes.rpg*100),0,100),
+    clamp(Math.round(sumApg/maxes.apg*100),0,100),
+    starPower,
+    clamp(Math.round(sumDef/maxes.def*100),0,100),
+  ];
+}
+
+function radarPoints(vals, cx, cy, maxR){
+  return vals.map((v,i)=>{
+    const angle = -Math.PI/2 + i*(2*Math.PI/5);
+    const r = (v/100)*maxR;
+    return `${(cx+r*Math.cos(angle)).toFixed(1)},${(cy+r*Math.sin(angle)).toFixed(1)}`;
+  }).join(' ');
+}
+
+function buildRadarSVG(labels, userVals, botVals){
+  const cx=160, cy=145, maxR=100;
+  const grid = [20,40,60,80,100].map(lvl=>{
+    const pts = labels.map((_,i)=>{
+      const angle=-Math.PI/2+i*(2*Math.PI/5);
+      const r=(lvl/100)*maxR;
+      return `${(cx+r*Math.cos(angle)).toFixed(1)},${(cy+r*Math.sin(angle)).toFixed(1)}`;
+    }).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#33353F" stroke-width="1"/>`;
+  }).join('');
+  const axes = labels.map((lbl,i)=>{
+    const angle=-Math.PI/2+i*(2*Math.PI/5);
+    const x2=cx+maxR*Math.cos(angle), y2=cy+maxR*Math.sin(angle);
+    const lx=cx+(maxR+28)*Math.cos(angle), ly=cy+(maxR+28)*Math.sin(angle);
+    return `<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#33353F" stroke-width="1"/>
+    <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9A9CA8" font-size="11" font-family="Oswald, sans-serif" text-anchor="middle" dominant-baseline="middle">${lbl}</text>`;
+  }).join('');
+  const userPts = radarPoints(userVals,cx,cy,maxR);
+  const botPts = radarPoints(botVals,cx,cy,maxR);
+  return `<svg viewBox="0 0 320 300" width="100%" style="max-width:380px; display:block; margin:0 auto;">
+    ${grid}${axes}
+    <polygon points="${userPts}" fill="#C9862B" fill-opacity="0.35" stroke="#C9862B" stroke-width="2"/>
+    <polygon points="${botPts}" fill="#5B6B8C" fill-opacity="0.35" stroke="#7C93C9" stroke-width="2"/>
+  </svg>`;
+}
+
+function endGame(){
+  G.over = true;
+  renderResults();
+}
+
+function renderResults(){
+  document.getElementById('gameScreen').classList.add('hidden');
+  const rs = document.getElementById('resultsScreen');
+  rs.classList.remove('hidden');
+
+  const userTA = teamRawAdj('user');
+  const botTA = teamRawAdj('bot');
+  const top5Raw = topNSum(G.order.map(p=>p.trueValue), 5);
+  const userScore = clamp(Math.round(userTA.adj/top5Raw*100),0,100);
+  const botScore = clamp(Math.round(botTA.adj/top5Raw*100),0,100);
+  const winner = userScore===botScore ? 'tie' : (userScore>botScore ? 'user' : 'bot');
+
+  const maxes = {
+    ppg: topNSum(G.order.map(p=>p.ppg),5),
+    rpg: topNSum(G.order.map(p=>p.rpg),5),
+    apg: topNSum(G.order.map(p=>p.apg),5),
+    def: topNSum(G.order.map(p=>p.def),5),
+    starPowerPoolAvg: topNAvg(G.order.map(p=>p.trueValue),3),
+  };
+  const labels = ['Scoring','Rebounding','Playmaking','Star Power','Defense'];
+  const userAxes = teamAxes('user', maxes);
+  const botAxes = teamAxes('bot', maxes);
+
+  const winnerLabel = winner==='tie' ? "It's a tie!" : (winner==='user' ? 'You win the draft! 🏆' : 'Bot wins the draft.');
+  const winnerClass = winner==='bot' ? 'bot' : 'you';
+
+  // Steal/overpay tags use hidden true value internally but never print the raw number.
+  const totalPoolValue = G.order.reduce((s,p)=>s+p.trueValue,0);
+  const priceScale = totalPoolValue/40;
+  const rows = (side)=> rosterByPosition(side).map(p=>{
+    const expectedValue = p.soldPrice*priceScale;
+    const tag = expectedValue < p.trueValue*0.75 ? '<span class="steal">steal</span>'
+              : expectedValue > p.trueValue*1.35 ? '<span class="overpay">overpay</span>' : '';
+    const oopNote = p.assignedPos!==p.pos
+      ? ` <span style="color:var(--chalk-dim); font-size:11px;">(natural ${p.pos}${p.posPenaltyDist===2?', big shift':''})</span>`
+      : '';
+    return `<tr><td>${p.name}${oopNote}</td><td>${p.assignedPos}</td><td class="num">$${p.soldPrice}</td><td>${tag}</td></tr>`;
+  }).join('');
+
+  rs.innerHTML = `
+    <div class="results">
+      <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
+      <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
+        <div class="score-card you">
+          <div class="label">Your Talent Score</div>
+          <div class="value mono">${userScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+        </div>
+        <div class="score-card bot">
+          <div class="label">Bot Talent Score</div>
+          <div class="value mono">${botScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+        </div>
+      </div>
+      <h2>Team Shape</h2>
+      ${buildRadarSVG(labels, userAxes, botAxes)}
+      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;">
+        <span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Bot
+      </div>
+      <h2>Your Roster</h2>
+      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rows('user')}</table>
+      <h2>Bot Roster</h2>
+      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rows('bot')}</table>
+      <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="restart()">Play Again (New Pool)</button>
+    </div>`;
+}
+
+/* ---------------- RENDER ---------------- */
+function render(){
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+    document.getElementById('botExitBtn').classList.toggle('hidden', APP_MODE !== 'bot');
+
+  document.getElementById('youBudget').textContent = '$'+G.budgets.user;
+  document.getElementById('botBudget').textContent = '$'+G.budgets.bot;
+  document.getElementById('youSlots').textContent = G.slots.user+' slots open';
+  document.getElementById('botSlots').textContent = G.slots.bot+' slots open';
+  const profileBanner = document.getElementById('profileBanner');
+  profileBanner.classList.add('hidden');
+  profileBanner.innerHTML = '';
+
+  // Auction area
+  const aArea = document.getElementById('auctionArea');
+  if(G.auction){
+    const player = G.order.find(p=>p.id===G.auction.playerId);
+    const userTurn = G.auction.turn==='user';
+    const noBidYet = !G.auction.bidder;
+    const nb1 = G.auction.bid+1, nb2 = G.auction.bid+2, nb5 = G.auction.bid+5;
+    const cap = maxBid('user');
+    const bidLabel = noBidYet ? 'No bid yet' : '$'+G.auction.bid;
+    const openDeclines = G.auction.openDeclines || {user:false, bot:false};
+    const otherDeclined = noBidYet && openDeclines[userTurn ? 'bot' : 'user'];
+    const holderLabel = noBidYet
+      ? (otherDeclined
+        ? `${userTurn?'bot':'you'} passed; ${userTurn?'your':'bot'} chance to open`
+        : `${G.auction.turn==='user'?'your':'bot'} first action`)
+      : `held by ${G.auction.bidder==='user'?'you':'bot'}`;
+    const actionVerb = noBidYet ? 'Open at' : 'Raise to';
+    const passLabel = noBidYet ? (otherDeclined ? 'Pass / Send Back' : 'Pass') : 'Pass';
+    aArea.innerHTML = `
+      <div class="auction-panel">
+        <div class="auction-top">
+          <div>
+            <div class="auction-player">${player.name}</div>
+            <div class="auction-meta">${player.pos} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+          </div>
+          <div class="bid-display">
+            <div class="lbl">Current Bid</div>
+            <div class="amt" style="font-size:${noBidYet?'24px':'34px'};">${bidLabel}</div>
+            <div class="who">${holderLabel}</div>
+          </div>
+        </div>
+        ${userTurn ? `
+        <div class="auction-controls">
+          <button class="btn" onclick="userRaise(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
+          <button class="btn" onclick="userRaise(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
+          <button class="btn" onclick="userRaise(5)" ${nb5>cap?'disabled':''}>${actionVerb} $${nb5}</button>
+          <button class="btn pass" onclick="userPass()">${passLabel}</button>
+        </div>` : `<div class="waiting">Waiting on bot...</div>`}
+      </div>`;
+  } else if(!G.over){
+    aArea.innerHTML = `
+      <div class="auction-panel" style="text-align:center;">
+        <div style="color:var(--chalk-dim); margin-bottom:12px;">
+          ${G.roundIndex} of ${G.order.length} players drafted so far. Nobody knows who's up next.
+        </div>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="startRound(${G.roundIndex})">Reveal Next Player</button>
+      </div>`;
+  }
+
+  // Rosters
+  document.getElementById('youNeed').textContent = '('+posNeedStr('user')+')';
+  document.getElementById('botNeed').textContent = '('+posNeedStr('bot')+')';
+  document.getElementById('youRoster').innerHTML = rosterHtml('user');
+  document.getElementById('botRoster').innerHTML = rosterHtml('bot');
+}
+
+const ROSTER_LAYOUT = ['G','G','F','F','C'];
+
+function rosterByPosition(side){
+  const byPos = {G:[], F:[], C:[]};
+  G.rosters[side].forEach(p=> byPos[p.assignedPos].push(p));
+  const counts = {G:0, F:0, C:0};
+  return ROSTER_LAYOUT.map(posLabel => byPos[posLabel][counts[posLabel]++] || null).filter(Boolean);
+}
+
+function rosterHtml(side){
+  const byPos = {G:[], F:[], C:[]};
+  G.rosters[side].forEach(p=> byPos[p.assignedPos].push(p));
+  const counts = {G:0, F:0, C:0};
+  let html = '';
+  ROSTER_LAYOUT.forEach(posLabel=>{
+    const p = byPos[posLabel][counts[posLabel]++];
+    if(p){
+      const oop = p.pos !== p.assignedPos;
+      const oopTag = oop
+        ? `<span style="color:${p.posPenaltyDist===2?'var(--danger)':'var(--gold)'}; font-size:10px;" title="Natural position: ${p.pos}">·OOP</span>`
+        : '';
+      html += `<div class="roster-slot"><span><span class="mono" style="color:var(--chalk-dim);">[${posLabel}]</span> ${p.name} ${oopTag}</span><span class="price">$${p.soldPrice}</span></div>`;
+    } else {
+      html += `<div class="roster-slot empty"><span class="mono" style="color:#4A4C57;">[${posLabel}]</span> Open</div>`;
+    }
+  });
+  return html;
+}
+
+
+/* ---------------- LANDING / MULTIPLAYER CLIENT ---------------- */
+let APP_MODE = 'home';
+let FRIEND_WS = null;
+let FRIEND_STATE = null;
+
+// When the frontend is served by the same Cloudflare Worker as the multiplayer API,
+// leave this blank. If you keep the static site on Pages and deploy the Worker
+// separately, set this in the console/localStorage or hardcode your Worker URL here.
+const MULTIPLAYER_API_BASE = window.MULTIPLAYER_API_BASE || localStorage.getItem('NBA_AUCTION_API_BASE') || '';
+
+function cleanApiBase(){ return (MULTIPLAYER_API_BASE || '').replace(/\/$/, ''); }
+function apiUrl(path){ return cleanApiBase() + path; }
+function websocketUrl(path){
+  const base = cleanApiBase() || window.location.origin;
+  return base.replace(/^http/i,'ws') + path;
+}
+
+function setFriendStatus(text, isError=false){
+  const el = document.getElementById('friendStatus');
+  if(el){ el.textContent = text || ''; el.style.color = isError ? 'var(--danger)' : 'var(--chalk-dim)'; }
+}
+
+function setGameLabels(opponentLabel){
+  const ybl = document.getElementById('youBudgetLabel');
+  const bbl = document.getElementById('botBudgetLabel');
+  const yrt = document.getElementById('youRosterTitle');
+  const brt = document.getElementById('botRosterTitle');
+  if(ybl) ybl.textContent = 'Your Budget';
+  if(bbl) bbl.textContent = `${opponentLabel} Budget`;
+  if(yrt) yrt.textContent = 'You';
+  if(brt) brt.textContent = opponentLabel;
+}
+
+function showLanding(){
+  APP_MODE = 'home';
+  disconnectFriend();
+  G = null;
+  document.getElementById('logBox').innerHTML = '';
+  document.getElementById('botExitBtn').classList.add('hidden');
+  document.getElementById('setupScreen').classList.remove('hidden');
+  document.getElementById('landingPanel').classList.remove('hidden');
+  document.getElementById('friendPanel').classList.add('hidden');
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+  document.getElementById('roomCodeDisplay').classList.add('hidden');
+  setFriendStatus('');
+}
+
+function showFriendPanel(){
+  APP_MODE = 'friend-setup';
+  document.getElementById('landingPanel').classList.add('hidden');
+  document.getElementById('friendPanel').classList.remove('hidden');
+  setFriendStatus('Create a game or enter a room code.');
+}
+
+function disconnectFriend(){
+  if(FRIEND_WS){
+    try{ FRIEND_WS.close(); }catch(e){}
+  }
+  FRIEND_WS = null;
+  FRIEND_STATE = null;
+}
+
+async function createFriendRoom(){
+  setFriendStatus('Creating room...');
+  try{
+    const res = await fetch(apiUrl('/api/room/create'), {method:'POST'});
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    const codeEl = document.getElementById('roomCodeDisplay');
+    codeEl.textContent = data.code;
+    codeEl.classList.remove('hidden');
+    connectFriendRoom(data.code, 'host');
+  }catch(err){
+    setFriendStatus(`Could not create room. ${err.message || err}`, true);
+  }
+}
+
+async function checkRoomBeforeJoin(code){
+  try{
+    const res = await fetch(apiUrl(`/api/room/${encodeURIComponent(code)}/status`));
+    if(res.status === 404){
+      return {ok:false, message:'Invalid room code. Check the code and try again.'};
+    }
+    if(!res.ok){
+      return {ok:false, message:'Could not check that room. Try again.'};
+    }
+    const data = await res.json();
+    if(!data.exists){
+      return {ok:false, message:'Invalid room code. Check the code and try again.'};
+    }
+    if(data.full){
+      return {ok:false, message:'That room is already full. Ask your friend to create a new game.'};
+    }
+    return {ok:true};
+  }catch(err){
+    return {ok:false, message:'Could not check that room. Make sure the multiplayer server is live.'};
+  }
+}
+
+async function joinFriendRoom(){
+  const input = document.getElementById('joinCodeInput');
+  const code = (input.value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
+  if(!code){ setFriendStatus('Enter a room code first.', true); return; }
+  setFriendStatus('Checking room code...');
+  document.getElementById('roomCodeDisplay').textContent = code;
+  document.getElementById('roomCodeDisplay').classList.add('hidden');
+
+  const check = await checkRoomBeforeJoin(code);
+  if(!check.ok){
+    setFriendStatus(check.message, true);
+    return;
+  }
+
+  document.getElementById('roomCodeDisplay').classList.remove('hidden');
+  connectFriendRoom(code, 'guest');
+}
+
+function connectFriendRoom(code, side){
+  disconnectFriend();
+  APP_MODE = 'friend';
+  setGameLabels('Opponent');
+  setFriendStatus(side==='host' ? `Room ${code} created. Waiting for friend...` : `Joining room ${code}...`);
+  const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}`));
+  FRIEND_WS = ws;
+  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? `Room ${code}. Send this code to your friend.` : `Connected to room ${code}.`));
+  ws.addEventListener('message', (event)=>{
+    let msg;
+    try{ msg = JSON.parse(event.data); }catch(e){ return; }
+    if(msg.type === 'error'){
+      setFriendStatus(msg.message || 'Room error.', true);
+      return;
+    }
+    if(msg.type === 'state'){
+      FRIEND_STATE = msg;
+      renderFriendState();
+    }
+  });
+  ws.addEventListener('close', ()=>{
+    if(APP_MODE === 'friend') setFriendStatus('Disconnected from room. Refresh or rejoin with the same code.', true);
+  });
+  ws.addEventListener('error', ()=>{
+    const msg = side === 'guest'
+      ? 'Could not join this room. The code may be invalid, full, or expired.'
+      : 'Could not connect to the room. Check your Worker deployment and try again.';
+    setFriendStatus(msg, true);
+  });
+}
+
+function sendFriendAction(type, payload={}){
+  if(!FRIEND_WS || FRIEND_WS.readyState !== WebSocket.OPEN){
+    setFriendStatus('Not connected to the room.', true);
+    return;
+  }
+  FRIEND_WS.send(JSON.stringify({type, ...payload}));
+}
+
+function friendBid(amount){ sendFriendAction('bid', {amount}); }
+function friendPass(){ sendFriendAction('pass'); }
+function friendReveal(){ sendFriendAction('reveal'); }
+
+function applyFriendStateToG(state){
+  const me = state.me;
+  const opp = state.opponent;
+  G = {
+    budgets:{user:me.budget, bot:opp.budget},
+    slots:{user:me.slots, bot:opp.slots},
+    posSlots:{user:me.posSlots, bot:opp.posSlots},
+    rosters:{user:me.roster || [], bot:opp.roster || []},
+    order:[],
+    auction:null,
+    log:state.log || [],
+    over:!!state.over,
+  };
+}
+
+function renderFriendLog(state){
+  const box = document.getElementById('logBox');
+  if(!box) return;
+  const mySide = state.side;
+  const oppSide = mySide === 'host' ? 'guest' : 'host';
+  box.innerHTML = '';
+  (state.log || []).forEach(entry=>{
+    const d = document.createElement('div');
+    d.className = entry.who === mySide ? 'you-log' : (entry.who === oppSide ? 'bot-log' : 'sys-log');
+    let text = entry.text || '';
+    text = text.replace(/\bHost\b/g, mySide === 'host' ? 'You' : 'Opponent');
+    text = text.replace(/\bGuest\b/g, mySide === 'guest' ? 'You' : 'Opponent');
+    d.textContent = text;
+    box.appendChild(d);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+function renderFriendState(){
+  const state = FRIEND_STATE;
+  if(!state) return;
+  if(state.over && state.results){ renderFriendResults(state); return; }
+
+  applyFriendStateToG(state);
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+  document.getElementById('botExitBtn').classList.add('hidden');
+
+  document.getElementById('youBudget').textContent = '$'+state.me.budget;
+  document.getElementById('botBudget').textContent = '$'+state.opponent.budget;
+  document.getElementById('youSlots').textContent = state.me.slots+' slots open';
+  document.getElementById('botSlots').textContent = state.opponent.slots+' slots open';
+
+  const banner = document.getElementById('profileBanner');
+  banner.classList.remove('hidden');
+  const opponentConnected = state.connected && state.connected[state.opponent.side];
+  banner.style.borderColor = 'var(--line)';
+  banner.style.color = 'var(--chalk-dim)';
+  if(state.status === 'waiting'){
+    banner.innerHTML = `<b>Room ${state.roomCode}</b> — Waiting for your friend to join.`;
+  } else if(!opponentConnected){
+    banner.style.borderColor = 'var(--danger)';
+    banner.style.color = 'var(--danger)';
+    banner.innerHTML = `<b>Room ${state.roomCode}</b> — ⚠ Opponent disconnected. Waiting for them to rejoin with this code.`;
+  } else {
+    banner.innerHTML = `<b>Room ${state.roomCode}</b> — Friend game live.`;
+  }
+
+  const aArea = document.getElementById('auctionArea');
+  if(state.status !== 'waiting' && !opponentConnected){
+    aArea.innerHTML = `<div class="auction-panel" style="text-align:center; border-color:var(--danger);">
+      <div style="color:var(--danger); font-weight:700; margin-bottom:8px;">Opponent disconnected</div>
+      <div style="color:var(--chalk-dim);">The game is paused until your friend reconnects with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
+    </div>`;
+  } else if(state.status === 'waiting'){
+    aArea.innerHTML = `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
+  } else if(state.auction){
+    const player = state.auction.player;
+    const myTurn = state.auction.turn === state.side;
+    const noBidYet = !state.auction.bidder;
+    const nb1 = state.auction.bid+1, nb2 = state.auction.bid+2, nb5 = state.auction.bid+5;
+    const cap = state.me.maxBid;
+    const bidLabel = noBidYet ? 'No bid yet' : '$'+state.auction.bid;
+    const otherDeclined = noBidYet && state.auction.openDeclines && state.auction.openDeclines[state.opponent.side];
+    const holderLabel = noBidYet
+      ? (otherDeclined ? 'opponent passed; your chance to open' : (myTurn ? 'your first action' : 'opponent first action'))
+      : `held by ${state.auction.bidder===state.side?'you':'opponent'}`;
+    const actionVerb = noBidYet ? 'Open at' : 'Raise to';
+    const passLabel = noBidYet ? (otherDeclined ? 'Pass / Send Back' : 'Pass') : 'Pass';
+    aArea.innerHTML = `
+      <div class="auction-panel">
+        <div class="auction-top">
+          <div>
+            <div class="auction-player">${player.name}</div>
+            <div class="auction-meta">${player.pos} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+          </div>
+          <div class="bid-display">
+            <div class="lbl">Current Bid</div>
+            <div class="amt" style="font-size:${noBidYet?'24px':'34px'};">${bidLabel}</div>
+            <div class="who">${holderLabel}</div>
+          </div>
+        </div>
+        ${myTurn ? `
+        <div class="auction-controls">
+          <button class="btn" onclick="friendBid(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
+          <button class="btn" onclick="friendBid(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
+          <button class="btn" onclick="friendBid(5)" ${nb5>cap?'disabled':''}>${actionVerb} $${nb5}</button>
+          <button class="btn pass" onclick="friendPass()">${passLabel}</button>
+        </div>` : `<div class="waiting">Waiting on opponent...</div>`}
+      </div>`;
+  } else {
+    aArea.innerHTML = `
+      <div class="auction-panel" style="text-align:center;">
+        <div style="color:var(--chalk-dim); margin-bottom:12px;">
+          ${state.draftedCount} of ${state.orderLength} players drafted so far. Nobody knows who's up next.
+        </div>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendReveal()">Reveal Next Player</button>
+      </div>`;
+  }
+
+  document.getElementById('youNeed').textContent = '('+posNeedStr('user')+')';
+  document.getElementById('botNeed').textContent = '('+posNeedStr('bot')+')';
+  document.getElementById('youRoster').innerHTML = rosterHtml('user');
+  document.getElementById('botRoster').innerHTML = rosterHtml('bot');
+  renderFriendLog(state);
+}
+
+function renderFriendResults(state){
+  applyFriendStateToG(state);
+  document.getElementById('setupScreen').classList.add('hidden');
+  document.getElementById('gameScreen').classList.add('hidden');
+  const rs = document.getElementById('resultsScreen');
+  rs.classList.remove('hidden');
+
+  const r = state.results;
+  const myScore = r.scores[state.side];
+  const oppScore = r.scores[state.opponent.side];
+  const myAxes = r.axes[state.side];
+  const oppAxes = r.axes[state.opponent.side];
+  const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft! 🏆' : 'Opponent wins the draft.');
+  const winnerClass = r.winner === state.side || r.winner === 'tie' ? 'you' : 'bot';
+  const rowHtml = (rows)=> rows.map(p=>{
+    const oopNote = p.naturalPos && p.naturalPos !== p.pos
+      ? ` <span style="color:var(--chalk-dim); font-size:11px;">(natural ${p.naturalPos}${p.bigShift?', big shift':''})</span>` : '';
+    const tag = p.tag === 'steal' ? '<span class="steal">steal</span>' : (p.tag === 'overpay' ? '<span class="overpay">overpay</span>' : '');
+    return `<tr><td>${p.name}${oopNote}</td><td>${p.pos}</td><td class="num">$${p.price}</td><td>${tag}</td></tr>`;
+  }).join('');
+
+  rs.innerHTML = `
+    <div class="results">
+      <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
+      <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
+        <div class="score-card you"><div class="label">Your Talent Score</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+        <div class="score-card bot"><div class="label">Opponent Talent Score</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+      </div>
+      <h2>Team Shape</h2>
+      ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
+      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
+      <h2>Your Roster</h2>
+      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.side])}</table>
+      <h2>Opponent Roster</h2>
+      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.opponent.side])}</table>
+      <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="showLanding()">Back to Home</button>
+    </div>`;
+}
+
+function restart(){
+  document.getElementById('logBox').innerHTML='';
+  if(APP_MODE === 'friend') showLanding(); else newGame();
+}
+
+
+document.getElementById('botModeBtn').addEventListener('click', newGame);
+document.getElementById('botExitBtn').addEventListener('click', showLanding);
+document.getElementById('friendModeBtn').addEventListener('click', showFriendPanel);
+document.getElementById('createRoomBtn').addEventListener('click', createFriendRoom);
+document.getElementById('joinRoomBtn').addEventListener('click', joinFriendRoom);
+document.getElementById('backHomeBtn').addEventListener('click', showLanding);
+document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
+showLanding();
