@@ -178,4 +178,44 @@
   opacity:0.65;
 }
 
+/* Results roster table alignment fix */
+.results table{
+  table-layout: fixed;
+  width: 100%;
+}
+
+.results th:nth-child(1),
+.results td:nth-child(1){
+  width: 56%;
+}
+
+.results th:nth-child(2),
+.results td:nth-child(2){
+  width: 10%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.results th:nth-child(3),
+.results td:nth-child(3){
+  width: 13%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.results th:nth-child(4),
+.results td:nth-child(4){
+  width: 21%;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.results table + h2{
+  margin-top: 28px;
+}
+
+.results h2 + table{
+  margin-top: 12px;
+}
+
   .hidden{display:none;}
