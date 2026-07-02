@@ -518,6 +518,12 @@ export class AuctionRoom {
 export default {
   async fetch(request, env, ctx){
     const url = new URL(request.url);
+
+    if (url.hostname === "nba-auction.timmykim07.workers.dev") {
+      url.hostname = "startingfive.tkimify.com";
+      url.protocol = "https:";
+      return Response.redirect(url.toString(), 301);
+    }
     if(request.method === 'OPTIONS') return new Response(null, {headers:CORS_HEADERS});
     if(request.method === 'POST' && url.pathname === '/api/room/create'){
       const code = makeCode();
