@@ -153,6 +153,22 @@
   .status-line{color:var(--chalk-dim); font-size:12.5px; margin-top:10px; min-height:18px;}
   .link-btn{background:transparent; border:none; color:var(--gold); font-family:'Inter',sans-serif; cursor:pointer; padding:0; margin-top:12px;}
 
+  .feedback-link{
+  display:block;
+  margin-top:10px;
+  text-align:center;
+  font-family:'JetBrains Mono', monospace;
+  font-size:11px;
+  color:var(--chalk-dim);
+  opacity:0.75;
+  text-decoration:none;
+}
+
+.feedback-link:hover{
+  opacity:1;
+  text-decoration:underline;
+}
+
   .version-footer{
   margin-top:18px;
   text-align:center;
