@@ -172,6 +172,7 @@ function buildPool(){
 
 const POS_INDEX = {G:0, F:1, C:2};
 const ROSTER_LAYOUT = ['G','G','F','F','C'];
+const NO_OPEN_BID_AUTOFILL_THRESHOLD = 4;
 function posDistance(a,b){ return Math.abs(POS_INDEX[a]-POS_INDEX[b]); }
 function penaltyMultiplier(dist){ return dist===0 ? 1 : (dist===1 ? 0.92 : 0.78); }
 function publicPlayer(p){
@@ -190,21 +191,34 @@ function optimizeRosterPositions(game, side){
   const used = Array(ROSTER_LAYOUT.length).fill(false);
   const assignment = Array(roster.length).fill(null);
   let bestAssignment = null;
-  let bestScore = Infinity;
-  function search(idx, score){
-    if(score >= bestScore) return;
-    if(idx >= roster.length){ bestScore = score; bestAssignment = assignment.slice(); return; }
+  let bestScore = -Infinity;
+  let bestDistance = Infinity;
+
+  function search(idx, score, distanceTotal){
+    if(idx >= roster.length){
+      if(score > bestScore || (score === bestScore && distanceTotal < bestDistance)){
+        bestScore = score;
+        bestDistance = distanceTotal;
+        bestAssignment = assignment.slice();
+      }
+      return;
+    }
+
     const player = roster[idx];
     for(let i=0;i<ROSTER_LAYOUT.length;i++){
       if(used[i]) continue;
       const slot = ROSTER_LAYOUT[i];
       const dist = posDistance(player.pos, slot);
-      used[i] = true; assignment[idx] = slot;
-      search(idx+1, score + dist*100 - player.trueValue*0.01);
-      used[i] = false; assignment[idx] = null;
+      const adjusted = Math.round(player.trueValue * penaltyMultiplier(dist));
+      used[i] = true;
+      assignment[idx] = slot;
+      search(idx+1, score + adjusted, distanceTotal + dist);
+      used[i] = false;
+      assignment[idx] = null;
     }
   }
-  search(0,0);
+
+  search(0,0,0);
   const remaining = {G:2,F:2,C:1};
   roster.forEach((player, idx)=>{
     const assignedPos = bestAssignment ? bestAssignment[idx] : player.pos;
@@ -271,6 +285,7 @@ function newRoomGame(code){
     rosters:{host:[], guest:[]},
     initialFirst: Math.random()<0.5 ? 'host' : 'guest',
     roundIndex:0, nominationCount:0, auction:null, log:[], over:false, results:null,
+    noOpenBidStreak:0,
     rematch:{host:false, guest:false}
   };
 }
@@ -313,7 +328,7 @@ function startRound(game){
   const player = game.order[game.roundIndex];
   const opener = firstBidderFor(game);
   game.nominationCount += 1;
-  game.auction = { playerId:player.id, bid:0, bidder:null, turn:opener, openDeclines:{host:false, guest:false} };
+  game.auction = { playerId:player.id, bid:0, bidder:null, turn:opener, openedBy:opener, openDeclines:{host:false, guest:false} };
   addLog(game, 'sys', `Player ${game.roundIndex+1} of ${game.order.length} revealed: ${player.name}. ${label(opener)} gets first action.`);
 }
 function recycleAuctionPlayer(game){
@@ -325,6 +340,38 @@ function recycleAuctionPlayer(game){
   }
   game.auction = null;
 }
+function sideForForcedFill(game, preferredSide){
+  if(game.slots[preferredSide] > 0) return preferredSide;
+  const other = otherSide(preferredSide);
+  return game.slots[other] > 0 ? other : null;
+}
+function forceAutoFillRemainingRosters(game, startingSide){
+  let nextSide = sideForForcedFill(game, startingSide) || sideForForcedFill(game, 'host');
+  if(!nextSide) return;
+
+  addLog(game, 'sys', 'Draft stalled after repeated no-bid passes. Remaining players will be assigned automatically for $1 each.');
+
+  const candidates = availableUndraftedPlayers(game);
+  candidates.forEach(player=>{
+    const side = sideForForcedFill(game, nextSide);
+    if(!side) return;
+    player.drafted = true;
+    player.soldTo = side;
+    player.soldPrice = 1;
+    game.budgets[side] -= 1;
+    game.slots[side] -= 1;
+    game.rosters[side].push(player);
+    assignPosition(game, side);
+    addLog(game, 'sys', `${label(side)} receives ${player.name} automatically for $1.`);
+
+    const other = otherSide(side);
+    nextSide = game.slots[other] > 0 ? other : side;
+  });
+
+  game.auction = null;
+  game.roundIndex = game.order.length;
+  endGame(game);
+}
 function passBeforeOpeningBid(game, side){
   const player = game.order.find(p=>p.id===game.auction.playerId);
   game.auction.openDeclines[side] = true;
@@ -335,6 +382,16 @@ function passBeforeOpeningBid(game, side){
     addLog(game, 'sys', `${label(other)} still has the option to open bidding on ${player.name}.`);
     return;
   }
+
+  game.noOpenBidStreak = (game.noOpenBidStreak || 0) + 1;
+  const undraftedLeft = availableUndraftedPlayers(game).length;
+  const threshold = Math.min(NO_OPEN_BID_AUTOFILL_THRESHOLD, Math.max(1, undraftedLeft * 2));
+  if(game.noOpenBidStreak >= threshold){
+    const startingSide = game.auction.openedBy || firstBidderFor(game);
+    forceAutoFillRemainingRosters(game, startingSide);
+    return;
+  }
+
   recycleAuctionPlayer(game);
 }
 function resolveAuction(game, winnerSide){
@@ -358,6 +415,7 @@ function processBid(game, side, amount){
   const openingBid = game.auction.bid === 0;
   const newBid = game.auction.bid + amount;
   if(newBid > maxBid(game, side)) return;
+  game.noOpenBidStreak = 0;
   game.auction.bid = newBid; game.auction.bidder = side; game.auction.turn = otherSide(side);
   addLog(game, side, openingBid ? `${label(side)} opens at $${newBid}.` : `${label(side)} raises to $${newBid}.`);
 }
