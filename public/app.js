@@ -730,6 +730,80 @@ function buildRadarSVG(labels, userVals, botVals){
   </svg>`;
 }
 
+function resultTagHtml(tag){
+  if(tag === 'steal') return '<span class="steal">steal</span>';
+  if(tag === 'overpay') return '<span class="overpay">overpay</span>';
+  return '';
+}
+
+function resultPlayerNameHtml(p){
+  if(!p) return '<span class="paired-empty">—</span>';
+
+  const oopNote = p.naturalPos && p.naturalPos !== p.pos
+    ? ` <span class="oop-note">(natural ${p.naturalPos}${p.bigShift ? ', big shift' : ''})</span>`
+    : '';
+
+  return `${p.name}${oopNote}`;
+}
+
+function resultPaidHtml(p){
+  if(!p) return '';
+
+  return `<span class="paired-price">$${p.price}</span> ${resultTagHtml(p.tag)}`;
+}
+
+function pairedRosterTable(leftTitle, rightTitle, leftRows, rightRows){
+  const maxRows = Math.max(ROSTER_LAYOUT.length, leftRows.length, rightRows.length);
+  let body = '';
+
+  for(let i = 0; i < maxRows; i++){
+    const left = leftRows[i] || null;
+    const right = rightRows[i] || null;
+    const slot = ROSTER_LAYOUT[i] || left?.pos || right?.pos || '';
+
+    body += `
+      <tr>
+        <td class="paired-paid paired-left-paid">${resultPaidHtml(left)}</td>
+        <td class="paired-player paired-left-player">${resultPlayerNameHtml(left)}</td>
+        <td class="paired-slot">${slot}</td>
+        <td class="paired-player paired-right-player">${resultPlayerNameHtml(right)}</td>
+        <td class="paired-paid paired-right-paid">${resultPaidHtml(right)}</td>
+      </tr>
+    `;
+  }
+
+  return `
+    <div class="paired-rosters">
+      <table class="paired-roster-table">
+        <colgroup>
+          <col class="paired-paid-col">
+          <col class="paired-player-col">
+          <col class="paired-slot-col">
+          <col class="paired-player-col">
+          <col class="paired-paid-col">
+        </colgroup>
+        <thead>
+          <tr class="paired-title-row">
+            <th colspan="2">${leftTitle}</th>
+            <th></th>
+            <th colspan="2">${rightTitle}</th>
+          </tr>
+          <tr>
+            <th class="paired-left-paid">Paid</th>
+            <th class="paired-left-player">Player</th>
+            <th class="paired-slot">Slot</th>
+            <th class="paired-right-player">Player</th>
+            <th class="paired-right-paid">Paid</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${body}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 function endGame(){
   G.over = true;
   renderResults();
@@ -765,14 +839,20 @@ function renderResults(){
   const totalPoolValue = G.order.reduce((s,p)=>s+p.trueValue,0);
   const priceScale = totalPoolValue/40;
   const rows = (side)=> rosterByPosition(side).map(p=>{
-    const expectedValue = p.soldPrice*priceScale;
-    const tag = expectedValue < p.trueValue*0.75 ? '<span class="steal">steal</span>'
-              : expectedValue > p.trueValue*1.35 ? '<span class="overpay">overpay</span>' : '';
-    const oopNote = p.assignedPos!==p.pos
-      ? ` <span style="color:var(--chalk-dim); font-size:11px;">(natural ${p.pos}${p.posPenaltyDist===2?', big shift':''})</span>`
-      : '';
-    return `<tr><td>${p.name}${oopNote}</td><td>${p.assignedPos}</td><td class="num">$${p.soldPrice}</td><td>${tag}</td></tr>`;
-  }).join('');
+    const expectedValue = p.soldPrice * priceScale;
+    const tag = expectedValue < p.trueValue * 0.75 ? 'steal'
+              : expectedValue > p.trueValue * 1.35 ? 'overpay'
+              : '';
+
+    return {
+      name: p.name,
+      pos: p.assignedPos,
+      naturalPos: p.pos,
+      bigShift: p.posPenaltyDist === 2,
+      price: p.soldPrice,
+      tag
+    };
+  });
 
   rs.innerHTML = `
     <div class="results">
@@ -792,10 +872,7 @@ function renderResults(){
       <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;">
         <span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Bot
       </div>
-      <h2>Your Roster</h2>
-      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rows('user')}</table>
-      <h2>Bot Roster</h2>
-      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rows('bot')}</table>
+      ${pairedRosterTable('Your Roster', 'Bot Roster', rows('user'), rows('bot'))}
       <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="restart()">Play Again (New Pool)</button>
     </div>`;
 }
@@ -1200,13 +1277,6 @@ function renderFriendResults(state){
   const oppAxes = r.axes[state.opponent.side];
   const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft! 🏆' : 'Opponent wins the draft.');
   const winnerClass = r.winner === state.side || r.winner === 'tie' ? 'you' : 'bot';
-  const rowHtml = (rows)=> rows.map(p=>{
-    const oopNote = p.naturalPos && p.naturalPos !== p.pos
-      ? ` <span style="color:var(--chalk-dim); font-size:11px;">(natural ${p.naturalPos}${p.bigShift?', big shift':''})</span>` : '';
-    const tag = p.tag === 'steal' ? '<span class="steal">steal</span>' : (p.tag === 'overpay' ? '<span class="overpay">overpay</span>' : '');
-    return `<tr><td>${p.name}${oopNote}</td><td>${p.pos}</td><td class="num">$${p.price}</td><td>${tag}</td></tr>`;
-  }).join('');
-
   const rematch = state.rematch || {requested:{}, connected:{}};
   const myRequested = !!(rematch.requested && rematch.requested[state.side]);
   const oppRequested = !!(rematch.requested && rematch.requested[state.opponent.side]);
@@ -1226,10 +1296,7 @@ function renderFriendResults(state){
       <h2>Team Shape</h2>
       ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
       <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
-      <h2>Your Roster</h2>
-      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.side])}</table>
-      <h2>Opponent Roster</h2>
-      <table><tr><th>Player</th><th>Pos</th><th class="num">Paid</th><th></th></tr>${rowHtml(r.rows[state.opponent.side])}</table>
+      ${pairedRosterTable('Your Roster', 'Opponent Roster', r.rows[state.side], r.rows[state.opponent.side])}
       <div class="results-actions">
         <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
         <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>

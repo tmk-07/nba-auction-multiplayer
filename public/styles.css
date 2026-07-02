@@ -178,44 +178,213 @@
   opacity:0.65;
 }
 
-/* Results roster table alignment fix */
-.results table{
-  table-layout: fixed;
+
+  .hidden{display:none;}
+
+
+/* Paired results roster comparison */
+.results .paired-rosters{
+  margin-top: 28px;
+  overflow-x: auto;
+}
+
+.results .paired-roster-table{
   width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
+  border-collapse: collapse;
 }
 
-.results th:nth-child(1),
-.results td:nth-child(1){
-  width: 56%;
+.results .paired-roster-table th,
+.results .paired-roster-table td{
+  vertical-align: middle;
 }
 
-.results th:nth-child(2),
-.results td:nth-child(2){
-  width: 10%;
-  text-align: left;
-  white-space: nowrap;
+.results .paired-roster-table th:nth-child(1),
+.results .paired-roster-table td:nth-child(1){
+  width: 34%;
 }
 
-.results th:nth-child(3),
-.results td:nth-child(3){
+.results .paired-roster-table th:nth-child(2),
+.results .paired-roster-table td:nth-child(2){
   width: 13%;
+}
+
+.results .paired-roster-table th:nth-child(3),
+.results .paired-roster-table td:nth-child(3){
+  width: 6%;
+}
+
+.results .paired-roster-table th:nth-child(4),
+.results .paired-roster-table td:nth-child(4){
+  width: 13%;
+}
+
+.results .paired-roster-table th:nth-child(5),
+.results .paired-roster-table td:nth-child(5){
+  width: 34%;
+}
+
+.results .paired-title-row th{
+  padding-top: 6px;
+  padding-bottom: 18px;
+  font-size: 21px;
+  color: var(--chalk);
+  text-align: left;
+}
+
+.results .paired-title-row th:nth-child(4){
+  text-align: left;
+}
+
+.paired-left-player,
+.paired-right-player{
+  text-align: left;
+}
+
+.paired-left-paid{
   text-align: right;
   white-space: nowrap;
 }
 
-.results th:nth-child(4),
-.results td:nth-child(4){
-  width: 21%;
+.paired-right-paid{
   text-align: left;
   white-space: nowrap;
 }
 
-.results table + h2{
-  margin-top: 28px;
+.paired-slot{
+  text-align: center;
+  color: var(--hardwood);
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 800;
+  white-space: nowrap;
 }
 
-.results h2 + table{
-  margin-top: 12px;
+.paired-price{
+  font-weight: 800;
+  color: var(--chalk);
 }
 
-  .hidden{display:none;}
+.oop-note{
+  color: var(--chalk-dim);
+  font-size: 11px;
+}
+
+.paired-empty{
+  color: var(--chalk-dim);
+}
+
+
+
+/* Balanced side-by-side results table override */
+.results .paired-roster-table{
+  width:100%;
+  table-layout:fixed;
+}
+
+.results .paired-roster-table .paired-player-col{
+  width:39%;
+}
+
+.results .paired-roster-table .paired-paid-col{
+  width:10%;
+}
+
+.results .paired-roster-table .paired-slot-col{
+  width:2%;
+}
+
+.results .paired-roster-table th,
+.results .paired-roster-table td{
+  overflow-wrap:anywhere;
+}
+
+.results .paired-roster-table .paired-left-player,
+.results .paired-roster-table .paired-right-player{
+  width:auto;
+  text-align:left;
+}
+
+.results .paired-roster-table .paired-left-paid{
+  text-align:right;
+  white-space:nowrap;
+}
+
+.results .paired-roster-table .paired-right-paid{
+  text-align:left;
+  white-space:nowrap;
+}
+
+.results .paired-roster-table .paired-slot{
+  text-align:center;
+  color:var(--hardwood);
+  font-family:'JetBrains Mono', monospace;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.results .paired-title-row th:first-child{
+  text-align:left;
+}
+
+.results .paired-title-row th:last-child{
+  text-align:right;
+}
+
+
+/* Inside-player side-by-side results layout: Paid | Your Player | Slot | Opponent Player | Paid */
+.results .paired-roster-table{
+  width:100%;
+  min-width:760px;
+  table-layout:fixed;
+}
+
+.results .paired-roster-table .paired-paid-col{
+  width:14%;
+}
+
+.results .paired-roster-table .paired-player-col{
+  width:35%;
+}
+
+.results .paired-roster-table .paired-slot-col{
+  width:2%;
+}
+
+.results .paired-roster-table .paired-left-paid{
+  text-align:left;
+  white-space:nowrap;
+}
+
+.results .paired-roster-table .paired-left-player{
+  text-align:right;
+  padding-right:14px;
+}
+
+.results .paired-roster-table .paired-slot{
+  text-align:center;
+  color:var(--hardwood);
+  font-family:'JetBrains Mono', monospace;
+  font-weight:800;
+  white-space:nowrap;
+  padding-left:4px;
+  padding-right:4px;
+}
+
+.results .paired-roster-table .paired-right-player{
+  text-align:left;
+  padding-left:14px;
+}
+
+.results .paired-roster-table .paired-right-paid{
+  text-align:right;
+  white-space:nowrap;
+}
+
+.results .paired-title-row th:first-child{
+  text-align:left;
+}
+
+.results .paired-title-row th:last-child{
+  text-align:right;
+}
