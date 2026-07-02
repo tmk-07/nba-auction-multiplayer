@@ -779,11 +779,11 @@ function renderResults(){
       <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
       <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
         <div class="score-card you">
-          <div class="label">Your Talent Score</div>
+          <div class="label">Your Team Rating</div>
           <div class="value mono">${userScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
         </div>
         <div class="score-card bot">
-          <div class="label">Bot Talent Score</div>
+          <div class="label">Bot Team Rating</div>
           <div class="value mono">${botScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
         </div>
       </div>
@@ -1220,8 +1220,8 @@ function renderFriendResults(state){
     <div class="results">
       <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
       <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
-        <div class="score-card you"><div class="label">Your Talent Score</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
-        <div class="score-card bot"><div class="label">Opponent Talent Score</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+        <div class="score-card you"><div class="label">Your Team Rating</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+        <div class="score-card bot"><div class="label">Opponent Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
       </div>
       <h2>Team Shape</h2>
       ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
