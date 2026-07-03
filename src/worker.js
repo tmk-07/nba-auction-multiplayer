@@ -2370,7 +2370,7 @@ function makeCode(){
 
 export class AuctionRoom {
   constructor(state, env){
-    this.state = state; this.env = env; this.sessions = new Map(); this.game = null; this.loaded = false;
+    this.state = state; this.env = env; this.game = null; this.loaded = false;
     this.autoFillTimer = null; this.autoFillTimerKey = null;
   }
   async load(){
@@ -2379,77 +2379,107 @@ export class AuctionRoom {
     this.loaded = true;
   }
   async save(){ await this.state.storage.put('game', this.game); }
-  connectedMap(){ return {host:this.sessions.has('host'), guest:this.sessions.has('guest')}; }
+  // Sockets tagged by side survive hibernation, so connection state is always
+  // read from the platform rather than an in-memory Map that would be wiped
+  // if this Durable Object gets evicted (idle eviction, load balancing, or a
+  // new deploy picking up new code).
+  socketsFor(side){ return this.state.getWebSockets(side); }
+  connectedMap(){ return {host: this.socketsFor('host').length > 0, guest: this.socketsFor('guest').length > 0}; }
   async fetch(request){
-    await this.load();
-    const url = new URL(request.url);
-    if(request.method === 'POST' && url.pathname.endsWith('/init')){
-      const code = url.searchParams.get('code') || makeCode();
-      if(!this.game){ this.game = newRoomGame(code); await this.save(); }
-      return new Response(JSON.stringify({ok:true, code:this.game.code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
-    }
-    if(request.method === 'GET' && url.pathname.endsWith('/status')){
-      if(!this.game){
-        return new Response(JSON.stringify({exists:false, full:false, message:'Invalid room code.'}), {status:404, headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+    try{
+      await this.load();
+      const url = new URL(request.url);
+      if(request.method === 'POST' && url.pathname.endsWith('/init')){
+        const code = url.searchParams.get('code') || makeCode();
+        if(!this.game){ this.game = newRoomGame(code); await this.save(); }
+        return new Response(JSON.stringify({ok:true, code:this.game.code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
       }
-      const connected = this.connectedMap();
-      const full = !!(this.game.guestJoined && connected.host && connected.guest && !this.game.over);
-      return new Response(JSON.stringify({
-        exists:true,
-        full,
-        status:this.game.status,
-        over:!!this.game.over,
-        connected,
-      }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+      if(request.method === 'GET' && url.pathname.endsWith('/status')){
+        if(!this.game){
+          return new Response(JSON.stringify({exists:false, full:false, message:'Invalid room code.'}), {status:404, headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+        }
+        const connected = this.connectedMap();
+        const full = !!(this.game.guestJoined && connected.host && connected.guest && !this.game.over);
+        return new Response(JSON.stringify({
+          exists:true,
+          full,
+          status:this.game.status,
+          over:!!this.game.over,
+          connected,
+        }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+      }
+      if(request.headers.get('Upgrade') === 'websocket') return this.handleWebSocket(request);
+      return new Response('Not found', {status:404, headers:CORS_HEADERS});
+    }catch(err){
+      return new Response('Room error: ' + (err && err.message ? err.message : String(err)), {status:500, headers:CORS_HEADERS});
     }
-    if(request.headers.get('Upgrade') === 'websocket') return this.handleWebSocket(request);
-    return new Response('Not found', {status:404, headers:CORS_HEADERS});
   }
   async handleWebSocket(request){
     const url = new URL(request.url);
     const side = url.searchParams.get('side');
     if(side !== 'host' && side !== 'guest') return new Response('Invalid side', {status:400});
     if(!this.game) return new Response('Room does not exist', {status:404});
-    if(side === 'guest' && this.game.guestJoined && this.sessions.has('guest') && !this.game.over){
+    const existingForSide = this.socketsFor(side);
+    if(side === 'guest' && this.game.guestJoined && existingForSide.length > 0 && !this.game.over){
       return new Response('Room is already full', {status:409, headers:CORS_HEADERS});
     }
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
-    server.accept();
 
-    if(this.sessions.has(side)){
-      try{ this.sessions.get(side).close(1012, 'Replaced by new connection'); }catch(e){}
+    // Replace any prior connection for this side before accepting the new one.
+    for(const ws of existingForSide){
+      try{ ws.close(1012, 'Replaced by new connection'); }catch(e){}
     }
-    this.sessions.set(side, server);
+
+    // acceptWebSocket (not server.accept()) registers the socket with the
+    // Hibernation API: the runtime can now unload this Durable Object from
+    // memory between messages and re-attach the same live socket later,
+    // instead of the connection being dropped whenever the object is evicted
+    // or a new Worker version is deployed.
+    this.state.acceptWebSocket(server, [side]);
+    server.serializeAttachment({side});
+
     if(side === 'guest' && !this.game.guestJoined){
       this.game.guestJoined = true;
       this.game.status = 'active';
       addLog(this.game, 'sys', 'Guest joined. The friend draft is ready.');
       await this.save();
     }
-    server.addEventListener('message', async (event)=>{
-      let msg; try{ msg = JSON.parse(event.data); }catch(e){ return; }
-      await this.handleAction(side, msg);
-    });
-    server.addEventListener('close', async ()=>{
-      this.sessions.delete(side);
-      if(this.game && this.game.status === 'active' && !this.game.over){
-        addLog(this.game, 'sys', `${label(side)} disconnected. Waiting for them to reconnect.`);
-        await this.save();
-      }
-      this.broadcast();
-    });
-    server.addEventListener('error', async ()=>{
-      this.sessions.delete(side);
-      if(this.game && this.game.status === 'active' && !this.game.over){
-        addLog(this.game, 'sys', `${label(side)} disconnected. Waiting for them to reconnect.`);
-        await this.save();
-      }
-      this.broadcast();
-    });
     this.broadcast();
     return new Response(null, {status:101, webSocket:client});
+  }
+  // These three are called automatically by the runtime for any socket
+  // accepted via acceptWebSocket, including after the object has been
+  // reloaded from hibernation - no manual event listeners needed.
+  async webSocketMessage(ws, message){
+    try{
+      await this.load();
+      const {side} = ws.deserializeAttachment() || {};
+      if(!side) return;
+      let msg; try{ msg = JSON.parse(message); }catch(e){ return; }
+      await this.handleAction(side, msg);
+    }catch(err){
+      try{ ws.send(JSON.stringify({type:'error', message:'Internal error, please refresh.'})); }catch(e){}
+    }
+  }
+  async webSocketClose(ws, code, reason, wasClean){
+    await this.load();
+    const {side} = ws.deserializeAttachment() || {};
+    if(this.game && side && this.game.status === 'active' && !this.game.over){
+      addLog(this.game, 'sys', `${label(side)} disconnected. Waiting for them to reconnect.`);
+      await this.save();
+    }
+    this.broadcast();
+  }
+  async webSocketError(ws, error){
+    await this.load();
+    const {side} = ws.deserializeAttachment() || {};
+    if(this.game && side && this.game.status === 'active' && !this.game.over){
+      addLog(this.game, 'sys', `${label(side)} disconnected. Waiting for them to reconnect.`);
+      await this.save();
+    }
+    this.broadcast();
   }
   async handleRematch(side){
     if(!this.game || !this.game.over){ this.broadcast(); return; }
@@ -2476,7 +2506,8 @@ export class AuctionRoom {
     if(msg && msg.type === 'rematch'){ await this.handleRematch(side); return; }
     if(!this.game || this.game.over){ this.broadcast(); return; }
     if(this.game.status !== 'active'){ this.broadcast(); return; }
-    if(!this.sessions.has('host') || !this.sessions.has('guest')){ this.broadcast(); return; }
+    const connected = this.connectedMap();
+    if(!connected.host || !connected.guest){ this.broadcast(); return; }
     if(msg.type === 'reveal'){ if(!this.game.auction) startRound(this.game); }
     else if(msg.type === 'bid') processBid(this.game, side, msg.amount);
     else if(msg.type === 'pass') processPass(this.game, side);
@@ -2539,8 +2570,10 @@ export class AuctionRoom {
   broadcast(){
     if(!this.game) return;
     const connected = this.connectedMap();
-    for(const [side, ws] of this.sessions.entries()){
-      try{ ws.send(JSON.stringify(stateForClient(this.game, side, connected))); }catch(e){}
+    for(const side of ['host', 'guest']){
+      for(const ws of this.socketsFor(side)){
+        try{ ws.send(JSON.stringify(stateForClient(this.game, side, connected))); }catch(e){}
+      }
     }
     this.scheduleAutoFillTimer();
   }
@@ -2548,37 +2581,41 @@ export class AuctionRoom {
 
 export default {
   async fetch(request, env, ctx){
-    const url = new URL(request.url);
+    try{
+      const url = new URL(request.url);
 
-    if (url.hostname.endsWith(".workers.dev")) {
-      url.hostname = "startingfive.tkimify.com";
-      url.protocol = "https:";
-      return Response.redirect(url.toString(), 302);
+      if (url.hostname.endsWith(".workers.dev")) {
+        url.hostname = "startingfive.tkimify.com";
+        url.protocol = "https:";
+        return Response.redirect(url.toString(), 302);
+      }
+
+      if(request.method === 'OPTIONS') return new Response(null, {headers:CORS_HEADERS});
+      if(request.method === 'POST' && url.pathname === '/api/room/create'){
+        const code = makeCode();
+        const id = env.AUCTION_ROOMS.idFromName(code);
+        const stub = env.AUCTION_ROOMS.get(id);
+        const initRes = await stub.fetch(`https://room/init?code=${code}`, {method:'POST'});
+        if(!initRes.ok) return new Response('Could not create room', {status:500, headers:CORS_HEADERS});
+        return new Response(JSON.stringify({code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+      }
+      const statusMatch = url.pathname.match(/^\/api\/room\/([A-Z0-9]+)\/status$/i);
+      if(statusMatch){
+        const code = statusMatch[1].toUpperCase();
+        const id = env.AUCTION_ROOMS.idFromName(code);
+        return env.AUCTION_ROOMS.get(id).fetch(request);
+      }
+      const wsMatch = url.pathname.match(/^\/api\/room\/([A-Z0-9]+)\/ws$/i);
+      if(wsMatch){
+        const code = wsMatch[1].toUpperCase();
+        const id = env.AUCTION_ROOMS.idFromName(code);
+        return env.AUCTION_ROOMS.get(id).fetch(request);
+      }
+      // If static assets are bound, serve the site from this same Worker.
+      if(env.ASSETS) return env.ASSETS.fetch(request);
+      return new Response('Starting Five multiplayer Worker is running.', {headers:CORS_HEADERS});
+    }catch(err){
+      return new Response('Worker error: ' + (err && err.message ? err.message : String(err)), {status:500, headers:CORS_HEADERS});
     }
-    
-    if(request.method === 'OPTIONS') return new Response(null, {headers:CORS_HEADERS});
-    if(request.method === 'POST' && url.pathname === '/api/room/create'){
-      const code = makeCode();
-      const id = env.AUCTION_ROOMS.idFromName(code);
-      const stub = env.AUCTION_ROOMS.get(id);
-      const initRes = await stub.fetch(`https://room/init?code=${code}`, {method:'POST'});
-      if(!initRes.ok) return new Response('Could not create room', {status:500, headers:CORS_HEADERS});
-      return new Response(JSON.stringify({code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
-    }
-    const statusMatch = url.pathname.match(/^\/api\/room\/([A-Z0-9]+)\/status$/i);
-    if(statusMatch){
-      const code = statusMatch[1].toUpperCase();
-      const id = env.AUCTION_ROOMS.idFromName(code);
-      return env.AUCTION_ROOMS.get(id).fetch(request);
-    }
-    const wsMatch = url.pathname.match(/^\/api\/room\/([A-Z0-9]+)\/ws$/i);
-    if(wsMatch){
-      const code = wsMatch[1].toUpperCase();
-      const id = env.AUCTION_ROOMS.idFromName(code);
-      return env.AUCTION_ROOMS.get(id).fetch(request);
-    }
-    // If static assets are bound, serve the site from this same Worker.
-    if(env.ASSETS) return env.ASSETS.fetch(request);
-    return new Response('Starting Five multiplayer Worker is running.', {headers:CORS_HEADERS});
   }
 };
