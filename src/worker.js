@@ -2147,33 +2147,52 @@ function firstBidderFor(game){
   return f;
 }
 function availableUndraftedPlayers(game){ return game.order.filter(p=>!p.drafted); }
-function autoFillRemainingRoster(game, side){
-  if(game.slots[side] <= 0) return;
-  const needed = game.slots[side];
-  const candidates = availableUndraftedPlayers(game).slice(0, needed);
-  addLog(game, 'sys', `${label(side)} gets ${needed} remaining player${needed===1?'':'s'} automatically because the other roster is full.`);
-  candidates.forEach(player=>{
-    player.drafted = true; player.soldTo = side; player.soldPrice = 1;
-    game.budgets[side] -= 1; game.slots[side] -= 1; game.rosters[side].push(player);
-    assignPosition(game, side);
-    addLog(game, 'sys', `${label(side)} receives ${player.name} automatically for $1.`);
-  });
+function nextUndraftedPlayer(game){
+  return game.order.find((p, i)=> i >= game.roundIndex && !p.drafted) || availableUndraftedPlayers(game)[0] || null;
+}
+function visibleAutoFillSide(game){
+  if(!game || game.over) return null;
+  if(game.slots.host <= 0 && game.slots.guest > 0) return 'guest';
+  if(game.slots.guest <= 0 && game.slots.host > 0) return 'host';
+  return null;
 }
 function endGame(game){ game.over = true; game.status = 'ended'; game.results = buildResults(game); }
 function maybeAutoFillAfterRosterFull(game){
-  if(game.slots.host <= 0 && game.slots.guest > 0){ autoFillRemainingRoster(game,'guest'); endGame(game); return true; }
-  if(game.slots.guest <= 0 && game.slots.host > 0){ autoFillRemainingRoster(game,'host'); endGame(game); return true; }
   if(game.slots.host <= 0 && game.slots.guest <= 0){ endGame(game); return true; }
+  if(!availableUndraftedPlayers(game).length){ endGame(game); return true; }
   return false;
 }
+function startAutoFillRound(game, side){
+  const player = nextUndraftedPlayer(game);
+  if(!player){ endGame(game); return; }
+  const idx = game.order.findIndex(p=>p.id === player.id);
+  if(idx >= 0) game.roundIndex = idx;
+  game.auction = {
+    playerId: player.id,
+    bid: 1,
+    bidder: null,
+    turn: side,
+    openedBy: side,
+    autoFill: true,
+    openDeclines: {host:false, guest:false}
+  };
+  const roundNumber = game.rosters.host.length + game.rosters.guest.length + 1;
+  addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(side)} must take this player for $1 because the other roster is full.`);
+}
 function startRound(game){
+  const autoSide = visibleAutoFillSide(game);
+  if(autoSide){ startAutoFillRound(game, autoSide); return; }
+
   if(maybeAutoFillAfterRosterFull(game)) return;
-  if(game.roundIndex >= game.order.length){ endGame(game); return; }
-  const player = game.order[game.roundIndex];
+  const player = nextUndraftedPlayer(game);
+  if(!player){ endGame(game); return; }
+  const idx = game.order.findIndex(p=>p.id === player.id);
+  if(idx >= 0) game.roundIndex = idx;
   const opener = firstBidderFor(game);
   game.nominationCount += 1;
   game.auction = { playerId:player.id, bid:0, bidder:null, turn:opener, openedBy:opener, openDeclines:{host:false, guest:false} };
-  addLog(game, 'sys', `Player ${game.roundIndex+1} of ${game.order.length} revealed: ${player.name}. ${label(opener)} gets first action.`);
+  const roundNumber = game.rosters.host.length + game.rosters.guest.length + 1;
+  addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(opener)} gets first action.`);
 }
 function recycleAuctionPlayer(game){
   const idx = game.order.findIndex(p=>p.id===game.auction.playerId);
@@ -2238,6 +2257,24 @@ function passBeforeOpeningBid(game, side){
 
   recycleAuctionPlayer(game);
 }
+function resolveAutoFillPick(game, side){
+  if(!game.auction || !game.auction.autoFill || game.auction.turn !== side) return;
+  const player = game.order.find(p=>p.id===game.auction.playerId);
+  if(!player || player.drafted){ game.auction = null; return; }
+  player.drafted = true;
+  player.soldTo = side;
+  player.soldPrice = 1;
+  game.budgets[side] -= 1;
+  game.slots[side] -= 1;
+  game.rosters[side].push(player);
+  assignPosition(game, side);
+  const idx = game.order.findIndex(p=>p.id === player.id);
+  if(idx >= 0) game.roundIndex = Math.max(game.roundIndex, idx + 1);
+  const oop = isOutOfPosition(player, player.assignedPos);
+  addLog(game, 'sys', `${label(side)} receives ${player.name} for the required $1 pick — slotted at ${player.assignedPos}${oop?` (off eligible positions: ${formatPositions(player)})`:''}.`);
+  game.auction = null;
+  if(maybeAutoFillAfterRosterFull(game)) return;
+}
 function resolveAuction(game, winnerSide){
   if(!game.auction || !winnerSide) return;
   const player = game.order.find(p=>p.id===game.auction.playerId);
@@ -2256,6 +2293,11 @@ function processBid(game, side, amount){
   if(game.over || game.status !== 'active') return;
   if(!game.auction || game.auction.turn !== side || game.slots[side] <= 0) return;
   amount = Number(amount);
+  if(game.auction.autoFill){
+    if(amount !== 1) return;
+    resolveAutoFillPick(game, side);
+    return;
+  }
   if(![1,2,5].includes(amount)) return;
   const openingBid = game.auction.bid === 0;
   const newBid = game.auction.bid + amount;
@@ -2267,6 +2309,7 @@ function processBid(game, side, amount){
 function processPass(game, side){
   if(game.over || game.status !== 'active') return;
   if(!game.auction || game.auction.turn !== side) return;
+  if(game.auction.autoFill) return;
   if(game.slots[side] <= 0){ maybeAutoFillAfterRosterFull(game); return; }
   if(!game.auction.bidder){ passBeforeOpeningBid(game, side); return; }
   addLog(game, side, `${label(side)} passes at $${game.auction.bid}.`);
@@ -2281,7 +2324,12 @@ function stateForClient(game, side, connected){
     me: {side, budget:game.budgets[side], slots:game.slots[side], posSlots:game.posSlots[side], maxBid:maxBid(game,side), roster:game.rosters[side].map(publicPlayer)},
     opponent: {side:opp, budget:game.budgets[opp], slots:game.slots[opp], posSlots:game.posSlots[opp], maxBid:maxBid(game,opp), roster:game.rosters[opp].map(publicPlayer)},
     auction: game.auction ? {
-      bid:game.auction.bid, bidder:game.auction.bidder, turn:game.auction.turn, openDeclines:game.auction.openDeclines, player:publicPlayer(currentPlayer)
+      bid:game.auction.bid,
+      bidder:game.auction.bidder,
+      turn:game.auction.turn,
+      autoFill:!!game.auction.autoFill,
+      openDeclines:game.auction.openDeclines,
+      player:publicPlayer(currentPlayer)
     } : null,
     log: game.log,
     rematch:{requested: game.rematch || {host:false, guest:false}, connected},

@@ -2295,12 +2295,24 @@ function firstBidderFor(nominationNumber){
 }
 
 function startRound(idx){
+  const autoSide = visibleAutoFillSide();
+  if(autoSide){
+    startAutoFillRound(autoSide);
+    return;
+  }
+
   if(maybeAutoFillAfterRosterFull()) return;
-  if(idx >= G.order.length){ endGame(); return; }
-  const player = G.order[idx];
+
+  const player = G.order.find((p, i)=> i >= G.roundIndex && !p.drafted) || availableUndraftedPlayers()[0];
+  if(!player){ endGame(); return; }
+
+  const playerIndex = G.order.findIndex(p=>p.id === player.id);
+  if(playerIndex >= 0) G.roundIndex = playerIndex;
+
   const opener = firstBidderFor(G.nominationCount);
   G.nominationCount += 1;
-  logMsg('sys', `Player ${G.roundIndex+1} of ${G.order.length} revealed: ${player.name}. ${opener==='user'?'You':'Bot'} gets first action.`);
+  const roundNumber = G.rosters.user.length + G.rosters.bot.length + 1;
+  logMsg('sys', `Round ${roundNumber} of ${G.order.length}: ${player.name} revealed. ${opener==='user'?'You':'Bot'} gets first action.`);
   startAuction(player.id, opener);
 }
 
@@ -2327,37 +2339,79 @@ function availableUndraftedPlayers(){
   return G.order.filter(p=>!p.drafted);
 }
 
-function autoFillRemainingRoster(side){
-  if(G.slots[side] <= 0) return;
-  const needed = G.slots[side];
-  const candidates = availableUndraftedPlayers().slice(0, needed);
-  if(!candidates.length) return;
-  logMsg('sys', `${side==='user'?'Your':'Bot'} remaining ${needed} roster spot${needed===1?'':'s'} ${needed===1?'is':'are'} filled automatically because the other roster is full.`);
-  candidates.forEach(player=>{
-    const price = 1;
-    player.drafted = true;
-    player.soldTo = side;
-    player.soldPrice = price;
-    G.budgets[side] -= price;
-    G.slots[side] -= 1;
-    G.rosters[side].push(player);
-    assignPosition(side, player);
-    logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} automatically for $${price}.`);
-  });
+function nextUndraftedPlayer(){
+  return G.order.find((p, i)=> i >= G.roundIndex && !p.drafted) || availableUndraftedPlayers()[0] || null;
+}
+
+function visibleAutoFillSide(){
+  if(!G || G.over) return null;
+  if(G.slots.user <= 0 && G.slots.bot > 0) return 'bot';
+  if(G.slots.bot <= 0 && G.slots.user > 0) return 'user';
+  return null;
+}
+
+function startAutoFillRound(side){
+  const player = nextUndraftedPlayer();
+  if(!player){ endGame(); return; }
+
+  const playerIndex = G.order.findIndex(p=>p.id === player.id);
+  if(playerIndex >= 0) G.roundIndex = playerIndex;
+
+  G.auction = {
+    playerId: player.id,
+    bid: 1,
+    bidder: null,
+    turn: side,
+    autoFill: true,
+    openDeclines: {user:false, bot:false}
+  };
+
+  const roundNumber = G.rosters.user.length + G.rosters.bot.length + 1;
+  const sideLabel = side === 'user' ? 'You' : 'Bot';
+  logMsg('sys', `Round ${roundNumber} of ${G.order.length}: ${player.name} revealed. ${sideLabel} must take this player for $1 because the other roster is full.`);
+  render();
+  if(side === 'bot') setTimeout(botAutoFillMove, 700);
+}
+
+function resolveAutoFillPick(side){
+  if(!G.auction || !G.auction.autoFill || G.auction.turn !== side) return;
+  const player = G.order.find(p=>p.id === G.auction.playerId);
+  if(!player || player.drafted){ G.auction = null; render(); return; }
+
+  const price = 1;
+  player.drafted = true;
+  player.soldTo = side;
+  player.soldPrice = price;
+  G.budgets[side] -= price;
+  G.slots[side] -= 1;
+  G.rosters[side].push(player);
+  assignPosition(side, player);
+
+  const idx = G.order.findIndex(p=>p.id === player.id);
+  if(idx >= 0) G.roundIndex = Math.max(G.roundIndex, idx + 1);
+
+  logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} for the required $1 pick — slotted at ${player.assignedPos}${isEligibleForAssignedPos(player)?'':' (off eligible positions)'}.`);
+  G.auction = null;
+
+  if(maybeAutoFillAfterRosterFull()) return;
+  if(!availableUndraftedPlayers().length){ endGame(); return; }
+  render();
+}
+
+function userAutoFillBid(){
+  resolveAutoFillPick('user');
+}
+
+function botAutoFillMove(){
+  resolveAutoFillPick('bot');
 }
 
 function maybeAutoFillAfterRosterFull(){
-  if(G.slots.user <= 0 && G.slots.bot > 0){
-    autoFillRemainingRoster('bot');
-    endGame();
-    return true;
-  }
-  if(G.slots.bot <= 0 && G.slots.user > 0){
-    autoFillRemainingRoster('user');
-    endGame();
-    return true;
-  }
   if(G.slots.user <= 0 && G.slots.bot <= 0){
+    endGame();
+    return true;
+  }
+  if(!availableUndraftedPlayers().length){
     endGame();
     return true;
   }
@@ -2385,6 +2439,7 @@ function passBeforeOpeningBid(side){
 /* ---------------- BIDDING ---------------- */
 function userRaise(amount){
   if(!G.auction || G.auction.turn!=='user' || G.slots.user<=0) return;
+  if(G.auction.autoFill) return;
   const openingBid = G.auction.bid===0;
   const newBid = G.auction.bid + amount;
   if(newBid > maxBid('user')) return;
@@ -2398,6 +2453,7 @@ function userRaise(amount){
 
 function userPass(){
   if(!G.auction || G.auction.turn!=='user') return;
+  if(G.auction.autoFill) return;
   if(G.slots.user<=0){ maybeAutoFillAfterRosterFull(); return; }
   if(!G.auction.bidder){
     passBeforeOpeningBid('user');
@@ -2425,6 +2481,7 @@ function botOpeningProbability(player, cap, est, persona){
 
 function botAuctionMove(){
   if(!G.auction || G.auction.turn!=='bot') return;
+  if(G.auction.autoFill){ botAutoFillMove(); return; }
   if(G.slots.bot<=0){ maybeAutoFillAfterRosterFull(); return; }
   const player = G.order.find(p=>p.id===G.auction.playerId);
   const est = botEstimate(player, G.persona, 'bot');
@@ -2759,7 +2816,29 @@ function render(){
 
   // Auction area
   const aArea = document.getElementById('auctionArea');
-  if(G.auction){
+  if(G.auction && G.auction.autoFill){
+    const player = G.order.find(p=>p.id===G.auction.playerId);
+    const userTurn = G.auction.turn==='user';
+    const sideLabel = userTurn ? 'your required pick' : 'bot required pick';
+    aArea.innerHTML = `
+      <div class="auction-panel">
+        <div class="auction-top">
+          <div>
+            <div class="auction-player">${player.name}</div>
+            <div class="auction-meta">${formatPositions(player)} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+          </div>
+          <div class="bid-display">
+            <div class="lbl">Required Pick</div>
+            <div class="amt">$1</div>
+            <div class="who">${sideLabel}</div>
+          </div>
+        </div>
+        ${userTurn ? `
+        <div class="auction-controls">
+          <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="userAutoFillBid()">Bid $1</button>
+        </div>` : `<div class="waiting">Waiting on bot to take the required $1 pick...</div>`}
+      </div>`;
+  } else if(G.auction){
     const player = G.order.find(p=>p.id===G.auction.playerId);
     const userTurn = G.auction.turn==='user';
     const noBidYet = !G.auction.bidder;
@@ -2797,12 +2876,10 @@ function render(){
         </div>` : `<div class="waiting">Waiting on bot...</div>`}
       </div>`;
   } else if(!G.over){
+    const nextRound = G.rosters.user.length + G.rosters.bot.length + 1;
     aArea.innerHTML = `
       <div class="auction-panel" style="text-align:center;">
-        <div style="color:var(--chalk-dim); margin-bottom:12px;">
-          ${G.roundIndex} of ${G.order.length} players drafted so far. Nobody knows who's up next.
-        </div>
-        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="startRound(${G.roundIndex})">Reveal Next Player</button>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="startRound(${G.roundIndex})">Continue to Round ${nextRound}</button>
       </div>`;
   }
 
@@ -3077,6 +3154,28 @@ function renderFriendState(){
     </div>`;
   } else if(state.status === 'waiting'){
     aArea.innerHTML = `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
+  } else if(state.auction && state.auction.autoFill){
+    const player = state.auction.player;
+    const myTurn = state.auction.turn === state.side;
+    const sideLabel = myTurn ? 'your required pick' : 'opponent required pick';
+    aArea.innerHTML = `
+      <div class="auction-panel">
+        <div class="auction-top">
+          <div>
+            <div class="auction-player">${player.name}</div>
+            <div class="auction-meta">${formatPositions(player)} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+          </div>
+          <div class="bid-display">
+            <div class="lbl">Required Pick</div>
+            <div class="amt">$1</div>
+            <div class="who">${sideLabel}</div>
+          </div>
+        </div>
+        ${myTurn ? `
+        <div class="auction-controls">
+          <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendBid(1)">Bid $1</button>
+        </div>` : `<div class="waiting">Waiting on opponent to take the required $1 pick...</div>`}
+      </div>`;
   } else if(state.auction){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;
@@ -3112,12 +3211,10 @@ function renderFriendState(){
         </div>` : `<div class="waiting">Waiting on opponent...</div>`}
       </div>`;
   } else {
+    const nextRound = state.draftedCount + 1;
     aArea.innerHTML = `
       <div class="auction-panel" style="text-align:center;">
-        <div style="color:var(--chalk-dim); margin-bottom:12px;">
-          ${state.draftedCount} of ${state.orderLength} players drafted so far. Nobody knows who's up next.
-        </div>
-        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendReveal()">Reveal Next Player</button>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendReveal()">Continue to Round ${nextRound}</button>
       </div>`;
   }
 
