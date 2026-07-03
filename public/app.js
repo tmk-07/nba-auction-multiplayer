@@ -3201,19 +3201,12 @@ function renderFriendState(){
   document.getElementById('botSlots').textContent = state.opponent.slots+' slots open';
 
   const banner = document.getElementById('profileBanner');
-  banner.classList.remove('hidden');
-  const opponentConnected = state.connected && state.connected[state.opponent.side];
-  banner.style.borderColor = 'var(--line)';
-  banner.style.color = 'var(--chalk-dim)';
-  if(state.status === 'waiting'){
-    banner.innerHTML = `<b>Room ${state.roomCode}</b> — Waiting for your friend to join.`;
-  } else if(!opponentConnected){
-    banner.style.borderColor = 'var(--danger)';
-    banner.style.color = 'var(--danger)';
-    banner.innerHTML = `<b>Room ${state.roomCode}</b> — ⚠ Opponent disconnected. Waiting for them to rejoin with this code.`;
-  } else {
-    banner.innerHTML = `<b>Room ${state.roomCode}</b> — Friend game live.`;
+  if(banner){
+    banner.classList.add('hidden');
+    banner.innerHTML = '';
+    banner.removeAttribute('style');
   }
+  const opponentConnected = state.connected && state.connected[state.opponent.side];
 
   const aArea = document.getElementById('auctionArea');
   if(state.status !== 'waiting' && !opponentConnected){
