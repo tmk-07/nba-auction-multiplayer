@@ -2429,7 +2429,7 @@ function resolveAutoFillPick(side, price=1){
   const idx = G.order.findIndex(p=>p.id === player.id);
   if(idx >= 0) G.roundIndex = Math.max(G.roundIndex, idx + 1);
 
-  logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} for $${price} — slotted at ${player.assignedPos}${isEligibleForAssignedPos(player)?'':' (off eligible positions)'}.`);
+  logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} for $${price} — slotted at ${player.assignedPos}${isOutOfPosition(player, player.assignedPos)?' (off eligible positions)':''}.`);
 
   if(maybeAutoFillAfterRosterFull()) return;
 
