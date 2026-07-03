@@ -413,7 +413,7 @@
 }
 
 
-/* v2.5.14 results tag/price fixed alignment */
+/* v2.5.15 results tag/price fixed alignment with side-specific tag offsets */
 .results .paid-align{
   display:inline-grid;
   align-items:baseline;
@@ -456,4 +456,14 @@
 .results .paired-right-paid .overpay{
   margin-left:0;
   margin-right:0;
+}
+
+/* v2.5.15 side-specific steal/overpay spacing
+   Left side: price then tag, so move tag left toward the price.
+   Right side: tag then price, so move tag right toward the price. */
+.results .paid-align-left .paired-tag-slot{
+  transform:translateX(-15px);
+}
+.results .paid-align-right .paired-tag-slot{
+  transform:translateX(15px);
 }
