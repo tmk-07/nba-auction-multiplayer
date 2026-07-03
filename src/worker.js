@@ -2130,6 +2130,7 @@ function newRoomGame(code){
     initialFirst: Math.random()<0.5 ? 'host' : 'guest',
     roundIndex:0, nominationCount:0, auction:null, log:[], over:false, results:null,
     noOpenBidStreak:0,
+    hasSkippedPlayers:false,
     rematch:{host:false, guest:false}
   };
 }
@@ -2199,6 +2200,7 @@ function recycleAuctionPlayer(game){
   if(idx >= 0){
     const [player] = game.order.splice(idx,1);
     game.order.push(player);
+    game.hasSkippedPlayers = true;
     addLog(game, 'sys', `No opening bid — ${player.name} moves to the back of the pool.`);
   }
   game.auction = null;
@@ -2257,24 +2259,36 @@ function passBeforeOpeningBid(game, side){
 
   recycleAuctionPlayer(game);
 }
-function resolveAutoFillPick(game, side){
+function resolveAutoFillPick(game, side, price=1){
   if(!game.auction || !game.auction.autoFill || game.auction.turn !== side) return;
+  price = Number(price);
+  if(![1,2,5].includes(price)) return;
+  if(price > maxBid(game, side)) return;
+
   const player = game.order.find(p=>p.id===game.auction.playerId);
   if(!player || player.drafted){ game.auction = null; return; }
   player.drafted = true;
   player.soldTo = side;
-  player.soldPrice = 1;
-  game.budgets[side] -= 1;
+  player.soldPrice = price;
+  game.budgets[side] -= price;
   game.slots[side] -= 1;
   game.rosters[side].push(player);
   assignPosition(game, side);
   const idx = game.order.findIndex(p=>p.id === player.id);
   if(idx >= 0) game.roundIndex = Math.max(game.roundIndex, idx + 1);
   const oop = isOutOfPosition(player, player.assignedPos);
-  addLog(game, 'sys', `${label(side)} receives ${player.name} for the required $1 pick — slotted at ${player.assignedPos}${oop?` (off eligible positions: ${formatPositions(player)})`:''}.`);
+  addLog(game, 'sys', `${label(side)} receives ${player.name} for the required $${price} pick — slotted at ${player.assignedPos}${oop?` (off eligible positions: ${formatPositions(player)})`:''}.`);
   game.auction = null;
   if(maybeAutoFillAfterRosterFull(game)) return;
+
+  // Keep visible forced-pick mode moving player-by-player without requiring
+  // a separate reveal/continue click between every required selection.
+  const nextAutoSide = visibleAutoFillSide(game);
+  if(nextAutoSide){
+    startAutoFillRound(game, nextAutoSide);
+  }
 }
+
 function resolveAuction(game, winnerSide){
   if(!game.auction || !winnerSide) return;
   const player = game.order.find(p=>p.id===game.auction.playerId);
@@ -2293,12 +2307,11 @@ function processBid(game, side, amount){
   if(game.over || game.status !== 'active') return;
   if(!game.auction || game.auction.turn !== side || game.slots[side] <= 0) return;
   amount = Number(amount);
+  if(![1,2,5].includes(amount)) return;
   if(game.auction.autoFill){
-    if(amount !== 1) return;
-    resolveAutoFillPick(game, side);
+    resolveAutoFillPick(game, side, amount);
     return;
   }
-  if(![1,2,5].includes(amount)) return;
   const openingBid = game.auction.bid === 0;
   const newBid = game.auction.bid + amount;
   if(newBid > maxBid(game, side)) return;
@@ -2321,6 +2334,7 @@ function stateForClient(game, side, connected){
   return {
     type:'state', roomCode: game.code, side, status: game.status, over: game.over, connected,
     draftedCount: game.rosters.host.length + game.rosters.guest.length, orderLength: game.order.length,
+    hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
     me: {side, budget:game.budgets[side], slots:game.slots[side], posSlots:game.posSlots[side], maxBid:maxBid(game,side), roster:game.rosters[side].map(publicPlayer)},
     opponent: {side:opp, budget:game.budgets[opp], slots:game.slots[opp], posSlots:game.posSlots[opp], maxBid:maxBid(game,opp), roster:game.rosters[opp].map(publicPlayer)},
     auction: game.auction ? {
@@ -2346,6 +2360,7 @@ function makeCode(){
 export class AuctionRoom {
   constructor(state, env){
     this.state = state; this.env = env; this.sessions = new Map(); this.game = null; this.loaded = false;
+    this.autoFillTimer = null; this.autoFillTimerKey = null;
   }
   async load(){
     if(this.loaded) return;
@@ -2457,12 +2472,51 @@ export class AuctionRoom {
     await this.save();
     this.broadcast();
   }
+  clearAutoFillTimer(){
+    if(this.autoFillTimer){
+      clearTimeout(this.autoFillTimer);
+      this.autoFillTimer = null;
+    }
+    this.autoFillTimerKey = null;
+  }
+
+  autoFillKey(){
+    if(!this.game || !this.game.auction || !this.game.auction.autoFill) return null;
+    return `${this.game.auction.playerId}:${this.game.auction.turn}:${this.game.rosters.host.length}:${this.game.rosters.guest.length}:${this.game.slots.host}:${this.game.slots.guest}`;
+  }
+
+  scheduleAutoFillTimer(){
+    if(!this.game || !this.game.auction || !this.game.auction.autoFill || this.game.over){
+      this.clearAutoFillTimer();
+      return;
+    }
+
+    const key = this.autoFillKey();
+    if(this.autoFillTimer && this.autoFillTimerKey === key) return;
+
+    this.clearAutoFillTimer();
+    this.autoFillTimerKey = key;
+    this.autoFillTimer = setTimeout(async ()=>{
+      const expectedKey = this.autoFillTimerKey;
+      this.autoFillTimer = null;
+      this.autoFillTimerKey = null;
+      await this.load();
+      if(!this.game || !this.game.auction || !this.game.auction.autoFill || this.autoFillKey() !== expectedKey) return;
+
+      const side = this.game.auction.turn;
+      resolveAutoFillPick(this.game, side, 1);
+      await this.save();
+      this.broadcast();
+    }, 2000);
+  }
+
   broadcast(){
     if(!this.game) return;
     const connected = this.connectedMap();
     for(const [side, ws] of this.sessions.entries()){
       try{ ws.send(JSON.stringify(stateForClient(this.game, side, connected))); }catch(e){}
     }
+    this.scheduleAutoFillTimer();
   }
 }
 

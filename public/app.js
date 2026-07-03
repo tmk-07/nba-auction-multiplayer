@@ -2252,7 +2252,8 @@ function newGame(){
     nominationCount: 0,
     auction: null,
     log: [],
-    over:false
+    over:false,
+    hasSkippedPlayers:false
   };
   debugMsg(`Talent pool locked in: "${profile.name}" — ${profile.desc}`);
   debugMsg(`Bot rival scouting profile: ${persona.name} — ${persona.flavor}`);
@@ -2330,6 +2331,7 @@ function recycleAuctionPlayer(){
   if(idx < 0) return;
   const [player] = G.order.splice(idx,1);
   G.order.push(player);
+  G.hasSkippedPlayers = true;
   logMsg('sys', `No opening bid — ${player.name} moves to the back of the pool.`);
   G.auction = null;
   render();
@@ -2348,6 +2350,26 @@ function visibleAutoFillSide(){
   if(G.slots.user <= 0 && G.slots.bot > 0) return 'bot';
   if(G.slots.bot <= 0 && G.slots.user > 0) return 'user';
   return null;
+}
+
+let BOT_AUTOFILL_TIMER = null;
+let BOT_AUTOFILL_TIMER_KEY = null;
+
+function scheduleBotAutoFillPick(){
+  if(!G || !G.auction || !G.auction.autoFill || G.auction.turn !== 'bot') return;
+
+  const key = `${G.auction.playerId}:${G.rosters.user.length}:${G.rosters.bot.length}:${G.slots.bot}`;
+  if(BOT_AUTOFILL_TIMER && BOT_AUTOFILL_TIMER_KEY === key) return;
+
+  if(BOT_AUTOFILL_TIMER) clearTimeout(BOT_AUTOFILL_TIMER);
+  BOT_AUTOFILL_TIMER_KEY = key;
+  BOT_AUTOFILL_TIMER = setTimeout(()=>{
+    BOT_AUTOFILL_TIMER = null;
+    BOT_AUTOFILL_TIMER_KEY = null;
+    if(G && G.auction && G.auction.autoFill && G.auction.turn === 'bot'){
+      botAutoFillMove();
+    }
+  }, 2000);
 }
 
 function startAutoFillRound(side){
@@ -2370,15 +2392,18 @@ function startAutoFillRound(side){
   const sideLabel = side === 'user' ? 'You' : 'Bot';
   logMsg('sys', `Round ${roundNumber} of ${G.order.length}: ${player.name} revealed. ${sideLabel} must take this player for $1 because the other roster is full.`);
   render();
-  if(side === 'bot') setTimeout(botAutoFillMove, 700);
+  if(side === 'bot') scheduleBotAutoFillPick();
 }
 
-function resolveAutoFillPick(side){
+function resolveAutoFillPick(side, price=1){
   if(!G.auction || !G.auction.autoFill || G.auction.turn !== side) return;
+  price = Number(price);
+  if(![1,2,5].includes(price)) return;
+  if(price > maxBid(side)) return;
+
   const player = G.order.find(p=>p.id === G.auction.playerId);
   if(!player || player.drafted){ G.auction = null; render(); return; }
 
-  const price = 1;
   player.drafted = true;
   player.soldTo = side;
   player.soldPrice = price;
@@ -2390,20 +2415,30 @@ function resolveAutoFillPick(side){
   const idx = G.order.findIndex(p=>p.id === player.id);
   if(idx >= 0) G.roundIndex = Math.max(G.roundIndex, idx + 1);
 
-  logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} for the required $1 pick — slotted at ${player.assignedPos}${isEligibleForAssignedPos(player)?'':' (off eligible positions)'}.`);
+  logMsg('sys', `${side==='user'?'YOU receive':'BOT receives'} ${player.name} for the required $${price} pick — slotted at ${player.assignedPos}${isEligibleForAssignedPos(player)?'':' (off eligible positions)'}.`);
   G.auction = null;
 
   if(maybeAutoFillAfterRosterFull()) return;
+
+  // Stay in visible forced-pick flow without showing an extra Continue button
+  // between required selections. This keeps the remaining players from
+  // feeling skipped while avoiding the old two-click forced-pick rhythm.
+  const nextAutoSide = visibleAutoFillSide();
+  if(nextAutoSide){
+    startAutoFillRound(nextAutoSide);
+    return;
+  }
+
   if(!availableUndraftedPlayers().length){ endGame(); return; }
   render();
 }
 
-function userAutoFillBid(){
-  resolveAutoFillPick('user');
+function userAutoFillBid(amount){
+  resolveAutoFillPick('user', amount);
 }
 
 function botAutoFillMove(){
-  resolveAutoFillPick('bot');
+  resolveAutoFillPick('bot', 1);
 }
 
 function maybeAutoFillAfterRosterFull(){
@@ -2799,6 +2834,26 @@ function renderResults(){
     </div>`;
 }
 
+
+function continueButtonLabel(){
+  if(!G) return 'Continue';
+  if(G.slots.user <= 0 && G.slots.bot <= 0) return 'Finish Draft';
+  if(!availableUndraftedPlayers().length) return 'Finish Draft';
+  if(visibleAutoFillSide()) return 'Continue to Remaining Players';
+  if(G.hasSkippedPlayers) return 'Continue to Remaining Players';
+  const nextRound = G.rosters.user.length + G.rosters.bot.length + 1;
+  return nextRound > G.order.length ? 'Finish Draft' : `Continue to Round ${nextRound}`;
+}
+
+function friendContinueButtonLabel(state){
+  if(!state) return 'Continue';
+  const totalSlotsLeft = (state.me?.slots || 0) + (state.opponent?.slots || 0);
+  if(totalSlotsLeft <= 0 || state.draftedCount >= state.orderLength) return 'Finish Draft';
+  if(state.visibleAutoFill || state.hasSkippedPlayers) return 'Continue to Remaining Players';
+  const nextRound = state.draftedCount + 1;
+  return nextRound > state.orderLength ? 'Finish Draft' : `Continue to Round ${nextRound}`;
+}
+
 /* ---------------- RENDER ---------------- */
 function render(){
   document.getElementById('setupScreen').classList.add('hidden');
@@ -2820,6 +2875,8 @@ function render(){
     const player = G.order.find(p=>p.id===G.auction.playerId);
     const userTurn = G.auction.turn==='user';
     const sideLabel = userTurn ? 'your required pick' : 'bot required pick';
+    const cap = userTurn ? maxBid('user') : maxBid('bot');
+    if(!userTurn) scheduleBotAutoFillPick();
     aArea.innerHTML = `
       <div class="auction-panel">
         <div class="auction-top">
@@ -2829,14 +2886,17 @@ function render(){
           </div>
           <div class="bid-display">
             <div class="lbl">Required Pick</div>
-            <div class="amt">$1</div>
+            <div class="amt" style="font-size:24px;">$1 min</div>
             <div class="who">${sideLabel}</div>
           </div>
         </div>
         ${userTurn ? `
         <div class="auction-controls">
-          <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="userAutoFillBid()">Bid $1</button>
-        </div>` : `<div class="waiting">Waiting on bot to take the required $1 pick...</div>`}
+          <button class="btn" onclick="userAutoFillBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
+          <button class="btn" onclick="userAutoFillBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
+          <button class="btn" onclick="userAutoFillBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
+          <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
+        </div>` : `<div class="waiting">Waiting on bot to take the required pick... Auto-pick in about 2 seconds.</div>`}
       </div>`;
   } else if(G.auction){
     const player = G.order.find(p=>p.id===G.auction.playerId);
@@ -2876,10 +2936,10 @@ function render(){
         </div>` : `<div class="waiting">Waiting on bot...</div>`}
       </div>`;
   } else if(!G.over){
-    const nextRound = G.rosters.user.length + G.rosters.bot.length + 1;
+    const buttonLabel = continueButtonLabel();
     aArea.innerHTML = `
       <div class="auction-panel" style="text-align:center;">
-        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="startRound(${G.roundIndex})">Continue to Round ${nextRound}</button>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="startRound(${G.roundIndex})">${buttonLabel}</button>
       </div>`;
   }
 
@@ -3158,6 +3218,7 @@ function renderFriendState(){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;
     const sideLabel = myTurn ? 'your required pick' : 'opponent required pick';
+    const cap = state.me.maxBid;
     aArea.innerHTML = `
       <div class="auction-panel">
         <div class="auction-top">
@@ -3167,14 +3228,17 @@ function renderFriendState(){
           </div>
           <div class="bid-display">
             <div class="lbl">Required Pick</div>
-            <div class="amt">$1</div>
+            <div class="amt" style="font-size:24px;">$1 min</div>
             <div class="who">${sideLabel}</div>
           </div>
         </div>
         ${myTurn ? `
         <div class="auction-controls">
-          <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendBid(1)">Bid $1</button>
-        </div>` : `<div class="waiting">Waiting on opponent to take the required $1 pick...</div>`}
+          <button class="btn" onclick="friendBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
+          <button class="btn" onclick="friendBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
+          <button class="btn" onclick="friendBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
+          <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
+        </div>` : `<div class="waiting">Waiting on opponent to take the required pick... Auto-pick in about 2 seconds.</div>`}
       </div>`;
   } else if(state.auction){
     const player = state.auction.player;
@@ -3211,10 +3275,10 @@ function renderFriendState(){
         </div>` : `<div class="waiting">Waiting on opponent...</div>`}
       </div>`;
   } else {
-    const nextRound = state.draftedCount + 1;
+    const buttonLabel = friendContinueButtonLabel(state);
     aArea.innerHTML = `
       <div class="auction-panel" style="text-align:center;">
-        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendReveal()">Continue to Round ${nextRound}</button>
+        <button class="btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendReveal()">${buttonLabel}</button>
       </div>`;
   }
 
