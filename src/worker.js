@@ -2141,6 +2141,13 @@ function maxBid(game, side){
   const slotsAfterThis = game.slots[side]-1;
   return Math.max(0, game.budgets[side] - slotsAfterThis);
 }
+function requiredPickMaxBid(game, side){
+  // Required picks should never get stuck because of a broken reserve edge case.
+  // In normal play this equals maxBid(game, side), but it guarantees at least a
+  // $1 escape path when a roster still has an open slot.
+  if(!game || game.slots[side] <= 0) return 0;
+  return Math.max(1, maxBid(game, side));
+}
 function addLog(game, who, text){ game.log.push({who, text}); if(game.log.length>80) game.log.shift(); }
 function firstBidderFor(game){
   let f = (game.nominationCount % 2 === 0) ? game.initialFirst : otherSide(game.initialFirst);
@@ -2170,7 +2177,7 @@ function startAutoFillRound(game, side){
   if(idx >= 0) game.roundIndex = idx;
   game.auction = {
     playerId: player.id,
-    bid: 1,
+    bid: 0,
     bidder: null,
     turn: side,
     openedBy: side,
@@ -2178,7 +2185,7 @@ function startAutoFillRound(game, side){
     openDeclines: {host:false, guest:false}
   };
   const roundNumber = game.rosters.host.length + game.rosters.guest.length + 1;
-  addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(side)} must take this player for $1 because the other roster is full.`);
+  addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(side)} must take ${player.name} because the other roster is full.`);
 }
 function startRound(game){
   const autoSide = visibleAutoFillSide(game);
@@ -2263,10 +2270,16 @@ function resolveAutoFillPick(game, side, price=1){
   if(!game.auction || !game.auction.autoFill || game.auction.turn !== side) return;
   price = Number(price);
   if(![1,2,5].includes(price)) return;
-  if(price > maxBid(game, side)) return;
+  if(price > requiredPickMaxBid(game, side)) return;
 
-  const player = game.order.find(p=>p.id===game.auction.playerId);
-  if(!player || player.drafted){ game.auction = null; return; }
+  const auction = game.auction;
+  const player = game.order.find(p=>p.id===auction.playerId);
+
+  // Clear the auction immediately so repeated bid messages cannot resolve the
+  // same required player twice or leave the final roster spot stuck.
+  game.auction = null;
+
+  if(!player || player.drafted) return;
   player.drafted = true;
   player.soldTo = side;
   player.soldPrice = price;
@@ -2277,17 +2290,15 @@ function resolveAutoFillPick(game, side, price=1){
   const idx = game.order.findIndex(p=>p.id === player.id);
   if(idx >= 0) game.roundIndex = Math.max(game.roundIndex, idx + 1);
   const oop = isOutOfPosition(player, player.assignedPos);
-  addLog(game, 'sys', `${label(side)} receives ${player.name} for the required $${price} pick — slotted at ${player.assignedPos}${oop?` (off eligible positions: ${formatPositions(player)})`:''}.`);
-  game.auction = null;
+  addLog(game, 'sys', `${label(side)} receives ${player.name} for $${price} — slotted at ${player.assignedPos}${oop?` (off eligible positions: ${formatPositions(player)})`:''}.`);
   if(maybeAutoFillAfterRosterFull(game)) return;
 
-  // Keep visible forced-pick mode moving player-by-player without requiring
-  // a separate reveal/continue click between every required selection.
   const nextAutoSide = visibleAutoFillSide(game);
   if(nextAutoSide){
     startAutoFillRound(game, nextAutoSide);
   }
 }
+
 
 function resolveAuction(game, winnerSide){
   if(!game.auction || !winnerSide) return;
@@ -2335,8 +2346,8 @@ function stateForClient(game, side, connected){
     type:'state', roomCode: game.code, side, status: game.status, over: game.over, connected,
     draftedCount: game.rosters.host.length + game.rosters.guest.length, orderLength: game.order.length,
     hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
-    me: {side, budget:game.budgets[side], slots:game.slots[side], posSlots:game.posSlots[side], maxBid:maxBid(game,side), roster:game.rosters[side].map(publicPlayer)},
-    opponent: {side:opp, budget:game.budgets[opp], slots:game.slots[opp], posSlots:game.posSlots[opp], maxBid:maxBid(game,opp), roster:game.rosters[opp].map(publicPlayer)},
+    me: {side, budget:game.budgets[side], slots:game.slots[side], posSlots:game.posSlots[side], maxBid:maxBid(game,side), requiredPickMaxBid:requiredPickMaxBid(game,side), roster:game.rosters[side].map(publicPlayer)},
+    opponent: {side:opp, budget:game.budgets[opp], slots:game.slots[opp], posSlots:game.posSlots[opp], maxBid:maxBid(game,opp), requiredPickMaxBid:requiredPickMaxBid(game,opp), roster:game.rosters[opp].map(publicPlayer)},
     auction: game.auction ? {
       bid:game.auction.bid,
       bidder:game.auction.bidder,
@@ -2472,6 +2483,14 @@ export class AuctionRoom {
     await this.save();
     this.broadcast();
   }
+  async alarm(){
+    await this.load();
+    if(!this.game || !this.game.auction || !this.game.auction.autoFill || this.game.over) return;
+    const side = this.game.auction.turn;
+    resolveAutoFillPick(this.game, side, 1);
+    await this.save();
+    this.broadcast();
+  }
   clearAutoFillTimer(){
     if(this.autoFillTimer){
       clearTimeout(this.autoFillTimer);
@@ -2488,6 +2507,7 @@ export class AuctionRoom {
   scheduleAutoFillTimer(){
     if(!this.game || !this.game.auction || !this.game.auction.autoFill || this.game.over){
       this.clearAutoFillTimer();
+      try{ this.state.storage.deleteAlarm(); }catch(e){}
       return;
     }
 
@@ -2496,19 +2516,25 @@ export class AuctionRoom {
 
     this.clearAutoFillTimer();
     this.autoFillTimerKey = key;
+
+    // Normal in-memory timer for active websocket sessions.
     this.autoFillTimer = setTimeout(async ()=>{
       const expectedKey = this.autoFillTimerKey;
       this.autoFillTimer = null;
       this.autoFillTimerKey = null;
       await this.load();
       if(!this.game || !this.game.auction || !this.game.auction.autoFill || this.autoFillKey() !== expectedKey) return;
-
       const side = this.game.auction.turn;
       resolveAutoFillPick(this.game, side, 1);
       await this.save();
       this.broadcast();
     }, 2000);
+
+    // Durable Object alarm fallback so the required pick still resolves even if
+    // the in-memory timer does not fire in production.
+    try{ this.state.storage.setAlarm(Date.now() + 2000); }catch(e){}
   }
+
 
   broadcast(){
     if(!this.game) return;
