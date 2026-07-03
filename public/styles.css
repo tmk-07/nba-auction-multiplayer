@@ -388,3 +388,20 @@
 .results .paired-title-row th:last-child{
   text-align:right;
 }
+
+
+/* v2.5.7 results alignment polish */
+.results .paired-left-player .oop-note{
+  margin-right:4px;
+}
+.results .paired-right-player .oop-note{
+  margin-left:4px;
+}
+.results .paired-right-paid .steal,
+.results .paired-right-paid .overpay{
+  margin-right:4px;
+}
+.results .paired-left-paid .steal,
+.results .paired-left-paid .overpay{
+  margin-left:4px;
+}

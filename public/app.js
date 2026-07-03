@@ -1,99 +1,1916 @@
 /* ---------------- DATA ---------------- */
-// Real players, roughly tiered by current caliber. Stats are illustrative/approximate
-// (for gameplay feel, not live season stats) since exact numbers shift every year.
+// Real players, roughly tiered by current caliber.
+// ppg/rpg/apg are recent per-game values for gameplay balance.
+// def is a curated 1-10 defensive/gameplay rating, not an official NBA statistic.
+// positions maps players into this game's G/F/C roster slots; flexible players can fill multiple slots without penalty.
 const MASTER = [
-  // Superstar tier
-  {name:"Nikola Jokic", pos:"C", tier:"superstar", ppg:29.6, rpg:12.7, apg:10.2, def:6},
-  {name:"Luka Doncic", pos:"G", tier:"superstar", ppg:28.2, rpg:8.0, apg:7.7, def:4},
-  {name:"Giannis Antetokounmpo", pos:"F", tier:"superstar", ppg:30.9, rpg:11.4, apg:6.1, def:9},
-  {name:"Shai Gilgeous-Alexander", pos:"G", tier:"superstar", ppg:30.1, rpg:5.5, apg:6.2, def:7},
-  {name:"Jayson Tatum", pos:"F", tier:"superstar", ppg:26.8, rpg:8.7, apg:5.8, def:7},
-  {name:"Victor Wembanyama", pos:"C", tier:"superstar", ppg:24.3, rpg:11.0, apg:3.9, def:9},
-  {name:"Anthony Edwards", pos:"G", tier:"superstar", ppg:27.6, rpg:5.7, apg:4.5, def:6},
-  {name:"Kevin Durant", pos:"F", tier:"superstar", ppg:27.1, rpg:6.6, apg:4.2, def:6},
-  {name:"Joel Embiid", pos:"C", tier:"superstar", ppg:27.6, rpg:10.9, apg:5.2, def:8},
-  {name:"LeBron James", pos:"F", tier:"superstar", ppg:24.4, rpg:7.8, apg:8.2, def:5},
-
-  // Star tier
-  {name:"Stephen Curry", pos:"G", tier:"star", ppg:24.5, rpg:4.4, apg:5.9, def:4},
-  {name:"Devin Booker", pos:"G", tier:"star", ppg:25.6, rpg:4.4, apg:6.9, def:5},
-  {name:"Kawhi Leonard", pos:"F", tier:"star", ppg:23.7, rpg:6.1, apg:3.6, def:9},
-  {name:"Anthony Davis", pos:"F", tier:"star", ppg:24.7, rpg:11.6, apg:3.5, def:8},
-  {name:"Donovan Mitchell", pos:"G", tier:"star", ppg:26.1, rpg:4.9, apg:5.1, def:5},
-  {name:"Jaylen Brown", pos:"F", tier:"star", ppg:23.0, rpg:5.5, apg:3.6, def:7},
-  {name:"Tyrese Haliburton", pos:"G", tier:"star", ppg:18.6, rpg:3.7, apg:9.2, def:4},
-  {name:"Paolo Banchero", pos:"F", tier:"star", ppg:25.9, rpg:7.5, apg:4.1, def:5},
-  {name:"Ja Morant", pos:"G", tier:"star", ppg:23.2, rpg:4.0, apg:7.3, def:5},
-  {name:"Trae Young", pos:"G", tier:"star", ppg:22.5, rpg:3.0, apg:11.6, def:3},
-  {name:"Jalen Brunson", pos:"G", tier:"star", ppg:26.0, rpg:3.5, apg:6.7, def:4},
-  {name:"Damian Lillard", pos:"G", tier:"star", ppg:24.9, rpg:4.7, apg:7.1, def:3},
-  {name:"Kyrie Irving", pos:"G", tier:"star", ppg:24.7, rpg:4.8, apg:4.6, def:4},
-  {name:"Jimmy Butler", pos:"F", tier:"star", ppg:17.5, rpg:5.4, apg:4.8, def:8},
-  {name:"Cade Cunningham", pos:"G", tier:"star", ppg:26.1, rpg:6.1, apg:9.1, def:4},
-  {name:"Alperen Sengun", pos:"C", tier:"star", ppg:19.1, rpg:10.3, apg:4.9, def:6},
-
-  // Starter tier
-  {name:"Domantas Sabonis", pos:"C", tier:"starter", ppg:19.4, rpg:13.6, apg:5.9, def:5},
-  {name:"DeMar DeRozan", pos:"F", tier:"starter", ppg:22.0, rpg:4.3, apg:5.0, def:4},
-  {name:"Bam Adebayo", pos:"C", tier:"starter", ppg:16.7, rpg:9.6, apg:4.0, def:8},
-  {name:"Zion Williamson", pos:"F", tier:"starter", ppg:21.6, rpg:6.8, apg:4.7, def:5},
-  {name:"Julius Randle", pos:"F", tier:"starter", ppg:20.9, rpg:7.5, apg:4.7, def:4},
-  {name:"Karl-Anthony Towns", pos:"C", tier:"starter", ppg:22.5, rpg:11.1, apg:3.3, def:4},
-  {name:"Pascal Siakam", pos:"F", tier:"starter", ppg:20.2, rpg:6.9, apg:3.5, def:6},
-  {name:"Jrue Holiday", pos:"G", tier:"starter", ppg:12.5, rpg:4.6, apg:4.8, def:8},
-  {name:"CJ McCollum", pos:"G", tier:"starter", ppg:20.1, rpg:4.1, apg:4.2, def:4},
-  {name:"Tyler Herro", pos:"G", tier:"starter", ppg:23.9, rpg:5.5, apg:5.2, def:3},
-  {name:"Desmond Bane", pos:"G", tier:"starter", ppg:19.2, rpg:6.1, apg:5.3, def:5},
-  {name:"Brandon Ingram", pos:"F", tier:"starter", ppg:22.2, rpg:5.6, apg:5.2, def:4},
-  {name:"Scottie Barnes", pos:"F", tier:"starter", ppg:19.3, rpg:7.7, apg:5.8, def:7},
-  {name:"Franz Wagner", pos:"F", tier:"starter", ppg:24.1, rpg:5.7, apg:4.7, def:6},
-  {name:"Darius Garland", pos:"G", tier:"starter", ppg:20.6, rpg:2.9, apg:6.7, def:4},
-  {name:"Myles Turner", pos:"C", tier:"starter", ppg:15.6, rpg:6.5, apg:1.5, def:8},
-  {name:"Jarrett Allen", pos:"C", tier:"starter", ppg:13.5, rpg:9.7, apg:1.9, def:8},
-  {name:"Rudy Gobert", pos:"C", tier:"starter", ppg:12.0, rpg:10.9, apg:1.8, def:9},
-  {name:"Chet Holmgren", pos:"C", tier:"starter", ppg:15.0, rpg:8.0, apg:2.0, def:8},
-
-  // Role tier
-  {name:"Herbert Jones", pos:"F", tier:"role", ppg:11.2, rpg:4.1, apg:2.1, def:9},
-  {name:"Mikal Bridges", pos:"F", tier:"role", ppg:17.6, rpg:4.2, apg:3.3, def:8},
-  {name:"Jalen Williams", pos:"F", tier:"role", ppg:19.5, rpg:4.5, apg:4.6, def:6},
-  {name:"Alex Caruso", pos:"G", tier:"role", ppg:9.8, rpg:3.7, apg:3.6, def:9},
-  {name:"Klay Thompson", pos:"G", tier:"role", ppg:14.2, rpg:3.1, apg:2.2, def:5},
-  {name:"Draymond Green", pos:"F", tier:"role", ppg:8.5, rpg:6.9, apg:6.0, def:9},
-  {name:"Aaron Gordon", pos:"F", tier:"role", ppg:14.4, rpg:6.5, apg:3.4, def:6},
-  {name:"Bruce Brown", pos:"G", tier:"role", ppg:9.1, rpg:3.7, apg:2.5, def:6},
-  {name:"OG Anunoby", pos:"F", tier:"role", ppg:18.0, rpg:4.8, apg:2.2, def:9},
-  {name:"Derrick White", pos:"G", tier:"role", ppg:16.4, rpg:4.5, apg:4.8, def:8},
-  {name:"Austin Reaves", pos:"G", tier:"role", ppg:20.2, rpg:4.5, apg:5.8, def:4},
-  {name:"Josh Hart", pos:"F", tier:"role", ppg:13.6, rpg:9.6, apg:5.9, def:6},
-  {name:"Brook Lopez", pos:"C", tier:"role", ppg:13.0, rpg:5.0, apg:1.8, def:8},
-  {name:"Mike Conley", pos:"G", tier:"role", ppg:8.2, rpg:2.6, apg:4.5, def:6},
-  {name:"Kentavious Caldwell-Pope", pos:"G", tier:"role", ppg:8.7, rpg:2.2, apg:2.0, def:7},
-  {name:"Jaden McDaniels", pos:"F", tier:"role", ppg:12.2, rpg:3.0, apg:1.4, def:8},
-  {name:"Andrew Wiggins", pos:"F", tier:"role", ppg:18.0, rpg:4.5, apg:2.6, def:6},
-  {name:"Donte DiVincenzo", pos:"G", tier:"role", ppg:11.7, rpg:3.7, apg:3.6, def:5},
-  {name:"Norman Powell", pos:"G", tier:"role", ppg:21.8, rpg:3.2, apg:2.1, def:4},
-  {name:"Tobias Harris", pos:"F", tier:"role", ppg:13.7, rpg:5.9, apg:2.2, def:4},
-
-  // Bench tier
-  {name:"Gary Trent Jr.", pos:"G", tier:"bench", ppg:11.8, rpg:2.2, apg:1.3, def:5},
-  {name:"Naz Reid", pos:"C", tier:"bench", ppg:14.2, rpg:5.6, apg:2.0, def:5},
-  {name:"Bobby Portis", pos:"F", tier:"bench", ppg:13.6, rpg:7.4, apg:1.3, def:4},
-  {name:"Delon Wright", pos:"G", tier:"bench", ppg:6.5, rpg:2.9, apg:3.3, def:6},
-  {name:"Kelly Olynyk", pos:"C", tier:"bench", ppg:9.0, rpg:4.6, apg:2.6, def:3},
-  {name:"Cody Martin", pos:"F", tier:"bench", ppg:6.8, rpg:3.4, apg:1.8, def:6},
-  {name:"Duncan Robinson", pos:"G", tier:"bench", ppg:12.9, rpg:2.4, apg:2.0, def:2},
-  {name:"Jae'Sean Tate", pos:"F", tier:"bench", ppg:7.9, rpg:4.0, apg:2.3, def:6},
-  {name:"Malik Monk", pos:"G", tier:"bench", ppg:17.2, rpg:3.8, apg:5.6, def:3},
-  {name:"Payton Pritchard", pos:"G", tier:"bench", ppg:14.3, rpg:3.8, apg:3.5, def:4},
-  {name:"Luke Kennard", pos:"G", tier:"bench", ppg:8.9, rpg:2.8, apg:3.3, def:3},
-  {name:"T.J. McConnell", pos:"G", tier:"bench", ppg:9.1, rpg:2.4, apg:4.4, def:5},
-  {name:"Al Horford", pos:"C", tier:"bench", ppg:9.0, rpg:6.2, apg:2.1, def:7},
-  {name:"Kevon Looney", pos:"C", tier:"bench", ppg:4.5, rpg:6.1, apg:1.6, def:6},
-  {name:"Max Strus", pos:"G", tier:"bench", ppg:9.4, rpg:4.3, apg:3.2, def:4},
-  {name:"Obi Toppin", pos:"F", tier:"bench", ppg:10.5, rpg:4.0, apg:1.6, def:3},
-  {name:"Grayson Allen", pos:"G", tier:"bench", ppg:10.6, rpg:3.0, apg:2.1, def:4},
-  {name:"Caris LeVert", pos:"G", tier:"bench", ppg:10.2, rpg:2.8, apg:3.7, def:4},
+  {
+    "name": "Nikola Jokic",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "superstar",
+    "ppg": 29.6,
+    "rpg": 12.7,
+    "apg": 10.2,
+    "def": 6
+  },
+  {
+    "name": "Luka Doncic",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "superstar",
+    "ppg": 28.2,
+    "rpg": 8.0,
+    "apg": 7.7,
+    "def": 4
+  },
+  {
+    "name": "Giannis Antetokounmpo",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "superstar",
+    "ppg": 30.4,
+    "rpg": 11.9,
+    "apg": 6.5,
+    "def": 9
+  },
+  {
+    "name": "Shai Gilgeous-Alexander",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "superstar",
+    "ppg": 32.7,
+    "rpg": 5.0,
+    "apg": 6.4,
+    "def": 7
+  },
+  {
+    "name": "Jayson Tatum",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "superstar",
+    "ppg": 26.8,
+    "rpg": 8.7,
+    "apg": 6.0,
+    "def": 7
+  },
+  {
+    "name": "Victor Wembanyama",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "superstar",
+    "ppg": 24.3,
+    "rpg": 11.0,
+    "apg": 3.7,
+    "def": 10
+  },
+  {
+    "name": "Anthony Edwards",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "superstar",
+    "ppg": 27.6,
+    "rpg": 5.7,
+    "apg": 4.5,
+    "def": 6
+  },
+  {
+    "name": "Kevin Durant",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "superstar",
+    "ppg": 26.6,
+    "rpg": 6.0,
+    "apg": 4.2,
+    "def": 6
+  },
+  {
+    "name": "Joel Embiid",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "superstar",
+    "ppg": 23.8,
+    "rpg": 8.2,
+    "apg": 4.5,
+    "def": 8
+  },
+  {
+    "name": "LeBron James",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F",
+      "C"
+    ],
+    "tier": "superstar",
+    "ppg": 24.4,
+    "rpg": 7.8,
+    "apg": 8.2,
+    "def": 5
+  },
+  {
+    "name": "Stephen Curry",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 24.5,
+    "rpg": 4.4,
+    "apg": 6.0,
+    "def": 4
+  },
+  {
+    "name": "Devin Booker",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 25.6,
+    "rpg": 4.1,
+    "apg": 7.1,
+    "def": 5
+  },
+  {
+    "name": "Kawhi Leonard",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 21.5,
+    "rpg": 5.9,
+    "apg": 3.1,
+    "def": 9
+  },
+  {
+    "name": "Anthony Davis",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 24.7,
+    "rpg": 11.6,
+    "apg": 3.5,
+    "def": 9
+  },
+  {
+    "name": "Donovan Mitchell",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 24.0,
+    "rpg": 4.5,
+    "apg": 5.0,
+    "def": 5
+  },
+  {
+    "name": "Jaylen Brown",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 22.2,
+    "rpg": 5.8,
+    "apg": 4.5,
+    "def": 7
+  },
+  {
+    "name": "Tyrese Haliburton",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 18.6,
+    "rpg": 3.5,
+    "apg": 9.2,
+    "def": 4
+  },
+  {
+    "name": "Paolo Banchero",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 25.9,
+    "rpg": 7.5,
+    "apg": 4.8,
+    "def": 5
+  },
+  {
+    "name": "Ja Morant",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 23.2,
+    "rpg": 4.1,
+    "apg": 7.3,
+    "def": 5
+  },
+  {
+    "name": "Trae Young",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 24.2,
+    "rpg": 3.1,
+    "apg": 11.6,
+    "def": 3
+  },
+  {
+    "name": "Jalen Brunson",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 26.0,
+    "rpg": 3.0,
+    "apg": 7.3,
+    "def": 4
+  },
+  {
+    "name": "Damian Lillard",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 24.9,
+    "rpg": 4.7,
+    "apg": 7.1,
+    "def": 3
+  },
+  {
+    "name": "Kyrie Irving",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 24.7,
+    "rpg": 4.8,
+    "apg": 4.6,
+    "def": 4
+  },
+  {
+    "name": "Jimmy Butler",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 17.5,
+    "rpg": 5.4,
+    "apg": 4.8,
+    "def": 8
+  },
+  {
+    "name": "Cade Cunningham",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 26.1,
+    "rpg": 6.1,
+    "apg": 9.1,
+    "def": 4
+  },
+  {
+    "name": "Alperen Sengun",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 19.1,
+    "rpg": 10.3,
+    "apg": 4.9,
+    "def": 6
+  },
+  {
+    "name": "De'Aaron Fox",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 23.5,
+    "rpg": 4.8,
+    "apg": 6.3,
+    "def": 5
+  },
+  {
+    "name": "Tyrese Maxey",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 26.3,
+    "rpg": 3.3,
+    "apg": 6.1,
+    "def": 4
+  },
+  {
+    "name": "LaMelo Ball",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 25.2,
+    "rpg": 4.9,
+    "apg": 7.4,
+    "def": 3
+  },
+  {
+    "name": "Jalen Williams",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 21.6,
+    "rpg": 5.3,
+    "apg": 5.1,
+    "def": 7
+  },
+  {
+    "name": "Jaren Jackson Jr.",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 22.2,
+    "rpg": 5.6,
+    "apg": 2.0,
+    "def": 9
+  },
+  {
+    "name": "Evan Mobley",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 18.5,
+    "rpg": 9.3,
+    "apg": 3.2,
+    "def": 9
+  },
+  {
+    "name": "Lauri Markkanen",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 19.0,
+    "rpg": 5.9,
+    "apg": 1.5,
+    "def": 4
+  },
+  {
+    "name": "Jamal Murray",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "star",
+    "ppg": 21.4,
+    "rpg": 3.9,
+    "apg": 6.0,
+    "def": 4
+  },
+  {
+    "name": "Kristaps Porzingis",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "star",
+    "ppg": 19.5,
+    "rpg": 6.8,
+    "apg": 2.1,
+    "def": 8
+  },
+  {
+    "name": "Cooper Flagg",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "star",
+    "ppg": 21.0,
+    "rpg": 6.7,
+    "apg": 4.5,
+    "def": 7
+  },
+  {
+    "name": "Domantas Sabonis",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 19.1,
+    "rpg": 13.9,
+    "apg": 6.0,
+    "def": 5
+  },
+  {
+    "name": "DeMar DeRozan",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 22.2,
+    "rpg": 3.9,
+    "apg": 4.4,
+    "def": 4
+  },
+  {
+    "name": "Bam Adebayo",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 18.1,
+    "rpg": 9.6,
+    "apg": 4.3,
+    "def": 8
+  },
+  {
+    "name": "Zion Williamson",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 24.6,
+    "rpg": 7.2,
+    "apg": 5.3,
+    "def": 5
+  },
+  {
+    "name": "Julius Randle",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 18.7,
+    "rpg": 7.1,
+    "apg": 4.7,
+    "def": 4
+  },
+  {
+    "name": "Karl-Anthony Towns",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 24.4,
+    "rpg": 12.8,
+    "apg": 3.1,
+    "def": 4
+  },
+  {
+    "name": "Pascal Siakam",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 20.2,
+    "rpg": 6.9,
+    "apg": 3.4,
+    "def": 6
+  },
+  {
+    "name": "Jrue Holiday",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 11.1,
+    "rpg": 4.3,
+    "apg": 3.9,
+    "def": 8
+  },
+  {
+    "name": "CJ McCollum",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 21.1,
+    "rpg": 3.8,
+    "apg": 4.1,
+    "def": 4
+  },
+  {
+    "name": "Tyler Herro",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 23.9,
+    "rpg": 5.2,
+    "apg": 5.5,
+    "def": 3
+  },
+  {
+    "name": "Desmond Bane",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 19.2,
+    "rpg": 6.1,
+    "apg": 5.3,
+    "def": 5
+  },
+  {
+    "name": "Brandon Ingram",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 22.2,
+    "rpg": 5.6,
+    "apg": 5.2,
+    "def": 4
+  },
+  {
+    "name": "Scottie Barnes",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 19.3,
+    "rpg": 7.7,
+    "apg": 5.8,
+    "def": 7
+  },
+  {
+    "name": "Franz Wagner",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 24.1,
+    "rpg": 5.7,
+    "apg": 4.7,
+    "def": 6
+  },
+  {
+    "name": "Darius Garland",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 20.6,
+    "rpg": 2.9,
+    "apg": 6.7,
+    "def": 4
+  },
+  {
+    "name": "Myles Turner",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 15.6,
+    "rpg": 6.5,
+    "apg": 1.5,
+    "def": 8
+  },
+  {
+    "name": "Jarrett Allen",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 13.5,
+    "rpg": 9.7,
+    "apg": 1.9,
+    "def": 8
+  },
+  {
+    "name": "Rudy Gobert",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 12.0,
+    "rpg": 10.9,
+    "apg": 1.8,
+    "def": 9
+  },
+  {
+    "name": "Chet Holmgren",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 15.0,
+    "rpg": 8.0,
+    "apg": 2.0,
+    "def": 8
+  },
+  {
+    "name": "Fred VanVleet",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 14.1,
+    "rpg": 3.7,
+    "apg": 5.6,
+    "def": 7
+  },
+  {
+    "name": "Amen Thompson",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 14.1,
+    "rpg": 8.2,
+    "apg": 3.8,
+    "def": 8
+  },
+  {
+    "name": "Brandon Miller",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 21.0,
+    "rpg": 4.9,
+    "apg": 3.6,
+    "def": 5
+  },
+  {
+    "name": "Jalen Green",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 21.0,
+    "rpg": 4.6,
+    "apg": 3.4,
+    "def": 3
+  },
+  {
+    "name": "RJ Barrett",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 21.1,
+    "rpg": 6.3,
+    "apg": 5.4,
+    "def": 4
+  },
+  {
+    "name": "Michael Porter Jr.",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 18.2,
+    "rpg": 7.0,
+    "apg": 2.1,
+    "def": 4
+  },
+  {
+    "name": "Trey Murphy III",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 21.2,
+    "rpg": 5.1,
+    "apg": 3.5,
+    "def": 5
+  },
+  {
+    "name": "Jerami Grant",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 14.4,
+    "rpg": 3.5,
+    "apg": 2.1,
+    "def": 6
+  },
+  {
+    "name": "Cam Johnson",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 18.8,
+    "rpg": 4.3,
+    "apg": 3.4,
+    "def": 5
+  },
+  {
+    "name": "Deni Avdija",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 16.9,
+    "rpg": 7.3,
+    "apg": 3.9,
+    "def": 6
+  },
+  {
+    "name": "Keegan Murray",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 12.4,
+    "rpg": 6.7,
+    "apg": 1.4,
+    "def": 6
+  },
+  {
+    "name": "Coby White",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 20.4,
+    "rpg": 3.7,
+    "apg": 4.5,
+    "def": 4
+  },
+  {
+    "name": "Anfernee Simons",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 19.3,
+    "rpg": 2.7,
+    "apg": 4.8,
+    "def": 3
+  },
+  {
+    "name": "Immanuel Quickley",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 17.1,
+    "rpg": 3.5,
+    "apg": 5.8,
+    "def": 5
+  },
+  {
+    "name": "Jalen Suggs",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 16.2,
+    "rpg": 4.0,
+    "apg": 3.7,
+    "def": 8
+  },
+  {
+    "name": "Ivica Zubac",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 16.8,
+    "rpg": 12.6,
+    "apg": 2.7,
+    "def": 7
+  },
+  {
+    "name": "Isaiah Hartenstein",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 11.2,
+    "rpg": 10.7,
+    "apg": 3.8,
+    "def": 7
+  },
+  {
+    "name": "Deandre Ayton",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 14.4,
+    "rpg": 10.2,
+    "apg": 1.6,
+    "def": 5
+  },
+  {
+    "name": "Walker Kessler",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 11.1,
+    "rpg": 12.2,
+    "apg": 1.7,
+    "def": 8
+  },
+  {
+    "name": "Jakob Poeltl",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 14.5,
+    "rpg": 9.6,
+    "apg": 2.8,
+    "def": 6
+  },
+  {
+    "name": "P.J. Washington",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 14.7,
+    "rpg": 7.8,
+    "apg": 2.3,
+    "def": 6
+  },
+  {
+    "name": "Tari Eason",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 12.0,
+    "rpg": 6.4,
+    "apg": 1.5,
+    "def": 8
+  },
+  {
+    "name": "Ausar Thompson",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 10.1,
+    "rpg": 5.1,
+    "apg": 2.3,
+    "def": 8
+  },
+  {
+    "name": "Jabari Smith Jr.",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "starter",
+    "ppg": 12.2,
+    "rpg": 7.0,
+    "apg": 1.1,
+    "def": 6
+  },
+  {
+    "name": "Devin Vassell",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 16.3,
+    "rpg": 4.0,
+    "apg": 2.9,
+    "def": 5
+  },
+  {
+    "name": "Stephon Castle",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 14.7,
+    "rpg": 3.7,
+    "apg": 4.1,
+    "def": 6
+  },
+  {
+    "name": "Shaedon Sharpe",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 18.5,
+    "rpg": 4.5,
+    "apg": 2.8,
+    "def": 4
+  },
+  {
+    "name": "Zach LaVine",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 23.3,
+    "rpg": 4.3,
+    "apg": 4.2,
+    "def": 3
+  },
+  {
+    "name": "Bradley Beal",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 17.0,
+    "rpg": 3.3,
+    "apg": 3.7,
+    "def": 3
+  },
+  {
+    "name": "Christian Braun",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "starter",
+    "ppg": 15.4,
+    "rpg": 5.2,
+    "apg": 2.6,
+    "def": 6
+  },
+  {
+    "name": "Andrew Nembhard",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "starter",
+    "ppg": 10.0,
+    "rpg": 3.3,
+    "apg": 5.0,
+    "def": 5
+  },
+  {
+    "name": "Herbert Jones",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 11.2,
+    "rpg": 4.1,
+    "apg": 2.1,
+    "def": 9
+  },
+  {
+    "name": "Mikal Bridges",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 17.6,
+    "rpg": 4.2,
+    "apg": 3.3,
+    "def": 8
+  },
+  {
+    "name": "Alex Caruso",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 7.1,
+    "rpg": 2.9,
+    "apg": 2.5,
+    "def": 9
+  },
+  {
+    "name": "Klay Thompson",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 14.0,
+    "rpg": 3.4,
+    "apg": 2.0,
+    "def": 5
+  },
+  {
+    "name": "Draymond Green",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 9.0,
+    "rpg": 6.1,
+    "apg": 5.6,
+    "def": 9
+  },
+  {
+    "name": "Aaron Gordon",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 14.7,
+    "rpg": 4.8,
+    "apg": 3.2,
+    "def": 6
+  },
+  {
+    "name": "Bruce Brown",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 8.3,
+    "rpg": 3.8,
+    "apg": 1.6,
+    "def": 6
+  },
+  {
+    "name": "OG Anunoby",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 18.0,
+    "rpg": 4.8,
+    "apg": 2.2,
+    "def": 9
+  },
+  {
+    "name": "Derrick White",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 16.4,
+    "rpg": 4.5,
+    "apg": 4.8,
+    "def": 8
+  },
+  {
+    "name": "Austin Reaves",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 20.2,
+    "rpg": 4.5,
+    "apg": 5.8,
+    "def": 4
+  },
+  {
+    "name": "Josh Hart",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 13.6,
+    "rpg": 9.6,
+    "apg": 5.9,
+    "def": 6
+  },
+  {
+    "name": "Brook Lopez",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 13.0,
+    "rpg": 5.0,
+    "apg": 1.8,
+    "def": 8
+  },
+  {
+    "name": "Mike Conley",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 8.2,
+    "rpg": 2.6,
+    "apg": 4.5,
+    "def": 6
+  },
+  {
+    "name": "Kentavious Caldwell-Pope",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 8.7,
+    "rpg": 2.2,
+    "apg": 2.0,
+    "def": 7
+  },
+  {
+    "name": "Jaden McDaniels",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 12.2,
+    "rpg": 3.0,
+    "apg": 1.4,
+    "def": 8
+  },
+  {
+    "name": "Andrew Wiggins",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 18.0,
+    "rpg": 4.5,
+    "apg": 2.6,
+    "def": 6
+  },
+  {
+    "name": "Donte DiVincenzo",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 11.7,
+    "rpg": 3.7,
+    "apg": 3.6,
+    "def": 5
+  },
+  {
+    "name": "Norman Powell",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 21.8,
+    "rpg": 3.2,
+    "apg": 2.1,
+    "def": 4
+  },
+  {
+    "name": "Tobias Harris",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 13.7,
+    "rpg": 5.9,
+    "apg": 2.2,
+    "def": 4
+  },
+  {
+    "name": "Dyson Daniels",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 14.1,
+    "rpg": 5.9,
+    "apg": 4.4,
+    "def": 9
+  },
+  {
+    "name": "Jordan Poole",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 20.5,
+    "rpg": 3.0,
+    "apg": 4.5,
+    "def": 2
+  },
+  {
+    "name": "Cam Thomas",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 24.0,
+    "rpg": 3.3,
+    "apg": 3.8,
+    "def": 2
+  },
+  {
+    "name": "Daniel Gafford",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 12.3,
+    "rpg": 6.8,
+    "apg": 1.4,
+    "def": 8
+  },
+  {
+    "name": "Dereck Lively II",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 8.7,
+    "rpg": 7.5,
+    "apg": 2.4,
+    "def": 7
+  },
+  {
+    "name": "Nic Claxton",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 10.3,
+    "rpg": 7.4,
+    "apg": 2.2,
+    "def": 7
+  },
+  {
+    "name": "Dillon Brooks",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 14.0,
+    "rpg": 3.7,
+    "apg": 1.7,
+    "def": 7
+  },
+  {
+    "name": "Dorian Finney-Smith",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 8.7,
+    "rpg": 3.9,
+    "apg": 1.4,
+    "def": 7
+  },
+  {
+    "name": "Marcus Smart",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 9.0,
+    "rpg": 2.1,
+    "apg": 3.2,
+    "def": 8
+  },
+  {
+    "name": "Nickeil Alexander-Walker",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 9.4,
+    "rpg": 3.2,
+    "apg": 2.7,
+    "def": 7
+  },
+  {
+    "name": "Ty Jerome",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 12.5,
+    "rpg": 2.5,
+    "apg": 3.4,
+    "def": 4
+  },
+  {
+    "name": "Isaiah Joe",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 10.2,
+    "rpg": 2.5,
+    "apg": 1.6,
+    "def": 4
+  },
+  {
+    "name": "Cason Wallace",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 8.4,
+    "rpg": 3.4,
+    "apg": 2.7,
+    "def": 7
+  },
+  {
+    "name": "Ayo Dosunmu",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 12.3,
+    "rpg": 3.5,
+    "apg": 4.5,
+    "def": 5
+  },
+  {
+    "name": "Collin Sexton",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 18.4,
+    "rpg": 2.7,
+    "apg": 4.2,
+    "def": 3
+  },
+  {
+    "name": "Keyonte George",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 16.8,
+    "rpg": 3.8,
+    "apg": 5.6,
+    "def": 3
+  },
+  {
+    "name": "Bennedict Mathurin",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 16.1,
+    "rpg": 5.3,
+    "apg": 1.9,
+    "def": 4
+  },
+  {
+    "name": "Rui Hachimura",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 13.1,
+    "rpg": 5.0,
+    "apg": 1.4,
+    "def": 4
+  },
+  {
+    "name": "Brandin Podziemski",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 11.7,
+    "rpg": 5.1,
+    "apg": 3.4,
+    "def": 5
+  },
+  {
+    "name": "Jonathan Kuminga",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 15.3,
+    "rpg": 4.6,
+    "apg": 2.2,
+    "def": 5
+  },
+  {
+    "name": "D'Angelo Russell",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "role",
+    "ppg": 12.6,
+    "rpg": 2.8,
+    "apg": 5.1,
+    "def": 2
+  },
+  {
+    "name": "Mitchell Robinson",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "role",
+    "ppg": 5.1,
+    "rpg": 5.9,
+    "apg": 0.6,
+    "def": 8
+  },
+  {
+    "name": "Sam Hauser",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "role",
+    "ppg": 8.5,
+    "rpg": 3.2,
+    "apg": 1.0,
+    "def": 5
+  },
+  {
+    "name": "Gary Trent Jr.",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 11.1,
+    "rpg": 2.3,
+    "apg": 1.2,
+    "def": 5
+  },
+  {
+    "name": "Naz Reid",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 14.2,
+    "rpg": 6.0,
+    "apg": 2.3,
+    "def": 5
+  },
+  {
+    "name": "Bobby Portis",
+    "pos": "F",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 13.9,
+    "rpg": 8.4,
+    "apg": 2.1,
+    "def": 4
+  },
+  {
+    "name": "Delon Wright",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 5.0,
+    "rpg": 2.3,
+    "apg": 2.5,
+    "def": 6
+  },
+  {
+    "name": "Kelly Olynyk",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 7.1,
+    "rpg": 3.7,
+    "apg": 2.3,
+    "def": 3
+  },
+  {
+    "name": "Cody Martin",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 7.8,
+    "rpg": 4.5,
+    "apg": 2.3,
+    "def": 6
+  },
+  {
+    "name": "Duncan Robinson",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 11.0,
+    "rpg": 2.3,
+    "apg": 2.4,
+    "def": 2
+  },
+  {
+    "name": "Jae'Sean Tate",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 4.0,
+    "rpg": 2.3,
+    "apg": 1.0,
+    "def": 6
+  },
+  {
+    "name": "Malik Monk",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 17.2,
+    "rpg": 3.8,
+    "apg": 5.6,
+    "def": 3
+  },
+  {
+    "name": "Payton Pritchard",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 14.3,
+    "rpg": 3.8,
+    "apg": 3.5,
+    "def": 4
+  },
+  {
+    "name": "Luke Kennard",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 8.9,
+    "rpg": 2.8,
+    "apg": 3.3,
+    "def": 3
+  },
+  {
+    "name": "T.J. McConnell",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 9.1,
+    "rpg": 2.4,
+    "apg": 4.4,
+    "def": 5
+  },
+  {
+    "name": "Al Horford",
+    "pos": "C",
+    "positions": [
+      "F",
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 9.0,
+    "rpg": 6.2,
+    "apg": 2.1,
+    "def": 7
+  },
+  {
+    "name": "Kevon Looney",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 4.5,
+    "rpg": 6.1,
+    "apg": 1.6,
+    "def": 6
+  },
+  {
+    "name": "Max Strus",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 9.4,
+    "rpg": 4.3,
+    "apg": 3.2,
+    "def": 4
+  },
+  {
+    "name": "Obi Toppin",
+    "pos": "F",
+    "positions": [
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 10.5,
+    "rpg": 4.0,
+    "apg": 1.6,
+    "def": 3
+  },
+  {
+    "name": "Grayson Allen",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 10.6,
+    "rpg": 3.0,
+    "apg": 2.1,
+    "def": 4
+  },
+  {
+    "name": "Caris LeVert",
+    "pos": "G",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 10.2,
+    "rpg": 2.8,
+    "apg": 3.7,
+    "def": 4
+  },
+  {
+    "name": "Steven Adams",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 3.9,
+    "rpg": 5.6,
+    "apg": 1.1,
+    "def": 6
+  },
+  {
+    "name": "Andre Drummond",
+    "pos": "C",
+    "positions": [
+      "C"
+    ],
+    "tier": "bench",
+    "ppg": 7.3,
+    "rpg": 7.8,
+    "apg": 0.6,
+    "def": 5
+  },
+  {
+    "name": "Gabe Vincent",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 6.4,
+    "rpg": 1.3,
+    "apg": 1.4,
+    "def": 6
+  },
+  {
+    "name": "Scoot Henderson",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 12.7,
+    "rpg": 3.0,
+    "apg": 5.1,
+    "def": 3
+  },
+  {
+    "name": "Jaime Jaquez Jr.",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 8.6,
+    "rpg": 4.4,
+    "apg": 2.5,
+    "def": 5
+  },
+  {
+    "name": "Terry Rozier",
+    "pos": "G",
+    "positions": [
+      "G"
+    ],
+    "tier": "bench",
+    "ppg": 10.6,
+    "rpg": 3.7,
+    "apg": 2.6,
+    "def": 3
+  },
+  {
+    "name": "Aaron Nesmith",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 12.0,
+    "rpg": 4.0,
+    "apg": 1.2,
+    "def": 6
+  },
+  {
+    "name": "Bilal Coulibaly",
+    "pos": "F",
+    "positions": [
+      "G",
+      "F"
+    ],
+    "tier": "bench",
+    "ppg": 12.3,
+    "rpg": 5.0,
+    "apg": 3.4,
+    "def": 6
+  }
 ];
 const TIER_BASE = {superstar:95, star:72, starter:50, role:30, bench:15};
 const TIER_VALUE_BOUNDS = {
@@ -203,8 +2020,17 @@ function buildPool(){
   const order = shuffle(selected).map((p,idx)=>{
     const trueValue = statBasedTrueValue(p);
     return {
-      id: "p"+idx, name:p.name, pos:p.pos, tier:p.tier,
-      trueValue, ppg:p.ppg, rpg:p.rpg, apg:p.apg, def:p.def, drafted:false
+      id: "p"+idx,
+      name:p.name,
+      pos:p.pos,
+      positions:(p.positions || [p.pos]).slice(),
+      tier:p.tier,
+      trueValue,
+      ppg:p.ppg,
+      rpg:p.rpg,
+      apg:p.apg,
+      def:p.def,
+      drafted:false
     };
   });
   return {profile, order};
@@ -214,10 +2040,13 @@ function positionalFitMultiplier(side, player){
   if(!G || !G.posSlots || !G.posSlots[side]) return 1;
   const slots = G.posSlots[side];
   if(G.slots[side]<=0) return 0;
-  if(slots[player.pos] > 0) return 1.06;
+
+  const positions = eligiblePositions(player);
+  if(positions.some(pos => slots[pos] > 0)) return 1.06;
+
   let bestDist = Infinity;
   ['G','F','C'].forEach(pos=>{
-    if(slots[pos] > 0) bestDist = Math.min(bestDist, posDistance(player.pos, pos));
+    if(slots[pos] > 0) bestDist = Math.min(bestDist, posDistanceForPlayer(player, pos));
   });
   if(bestDist===Infinity) return 0;
   return bestDist===1 ? 0.94 : 0.82;
@@ -320,7 +2149,27 @@ function botPushProbability(nextBid, cap, player, persona, leverage=false){
 // Out-of-position value penalties scale by distance from natural position
 // (G<->F is a short hop, G<->C is a big one).
 const POS_INDEX = {G:0, F:1, C:2};
+
+function eligiblePositions(player){
+  return Array.isArray(player.positions) && player.positions.length ? player.positions : [player.pos];
+}
+
+function formatPositions(player){
+  return eligiblePositions(player).join('/');
+}
+
 function posDistance(a,b){ return Math.abs(POS_INDEX[a]-POS_INDEX[b]); }
+
+function posDistanceForPlayer(player, assignedPos){
+  const positions = eligiblePositions(player);
+  if(positions.includes(assignedPos)) return 0;
+  return Math.min(...positions.map(pos => posDistance(pos, assignedPos)));
+}
+
+function isOutOfPosition(player, assignedPos){
+  return !eligiblePositions(player).includes(assignedPos);
+}
+
 function penaltyMultiplier(dist){ return dist===0 ? 1 : (dist===1 ? 0.92 : 0.78); }
 
 function optimizeRosterPositions(side){
@@ -345,7 +2194,7 @@ function optimizeRosterPositions(side){
     for(let slotIdx=0; slotIdx<slotLayout.length; slotIdx++){
       if(used[slotIdx]) continue;
       const assignedPos = slotLayout[slotIdx];
-      const dist = posDistance(player.pos, assignedPos);
+      const dist = posDistanceForPlayer(player, assignedPos);
       const adjusted = Math.round(player.trueValue * penaltyMultiplier(dist));
       used[slotIdx] = true;
       assignment[playerIdx] = assignedPos;
@@ -360,7 +2209,7 @@ function optimizeRosterPositions(side){
   const remaining = {G:2, F:2, C:1};
   roster.forEach((player, idx)=>{
     const assignedPos = bestAssignment ? bestAssignment[idx] : player.pos;
-    const dist = posDistance(player.pos, assignedPos);
+    const dist = posDistanceForPlayer(player, assignedPos);
     player.assignedPos = assignedPos;
     player.posPenaltyDist = dist;
     player.adjustedValue = Math.round(player.trueValue * penaltyMultiplier(dist));
@@ -652,7 +2501,7 @@ function resolveAuction(winnerSide){
   G.slots[winnerSide] -= 1;
   G.rosters[winnerSide].push(player);
   assignPosition(winnerSide, player);
-  logMsg('sys', `${winnerSide==='user'?'YOU win':'BOT wins'} ${player.name} for $${price} — slotted at ${player.assignedPos}${player.assignedPos!==player.pos?' (off natural position)':''}.`);
+  logMsg('sys', `${winnerSide==='user'?'YOU win':'BOT wins'} ${player.name} for $${price} — slotted at ${player.assignedPos}${isOutOfPosition(player, player.assignedPos)?' (off listed position)':''}.`);
   G.auction = null;
   G.roundIndex += 1;
 
@@ -736,20 +2585,35 @@ function resultTagHtml(tag){
   return '';
 }
 
-function resultPlayerNameHtml(p){
+function resultPlayerNameHtml(p, side='left'){
   if(!p) return '<span class="paired-empty">—</span>';
 
-  const oopNote = p.naturalPos && p.naturalPos !== p.pos
-    ? ` <span class="oop-note">(natural ${p.naturalPos}${p.bigShift ? ', big shift' : ''})</span>`
+  const positions = p.positions || (p.naturalPos ? [p.naturalPos] : [p.pos]);
+  const isOop = !positions.includes(p.pos);
+  const oopNote = isOop
+    ? `<span class="oop-note">(eligible ${positions.join('/')}${p.bigShift ? ', big shift' : ''})</span>`
     : '';
 
-  return `${p.name}${oopNote}`;
+  // Left side is right-aligned, so put the note before the name. That keeps
+  // the actual player names lined up against the slot column.
+  if(side === 'left'){
+    return oopNote ? `${oopNote} ${p.name}` : p.name;
+  }
+
+  // Right side is left-aligned, so the note can stay after the name.
+  return oopNote ? `${p.name} ${oopNote}` : p.name;
 }
 
-function resultPaidHtml(p){
+function resultPaidHtml(p, side='left'){
   if(!p) return '';
 
-  return `<span class="paired-price">$${p.price}</span> ${resultTagHtml(p.tag)}`;
+  const price = `<span class="paired-price">$${p.price}</span>`;
+  const tag = resultTagHtml(p.tag);
+  if(!tag) return price;
+
+  // Right side is right-aligned, so putting the tag before the price keeps
+  // all dollar amounts flush on the outside edge.
+  return side === 'right' ? `${tag} ${price}` : `${price} ${tag}`;
 }
 
 function pairedRosterTable(leftTitle, rightTitle, leftRows, rightRows){
@@ -763,11 +2627,11 @@ function pairedRosterTable(leftTitle, rightTitle, leftRows, rightRows){
 
     body += `
       <tr>
-        <td class="paired-paid paired-left-paid">${resultPaidHtml(left)}</td>
-        <td class="paired-player paired-left-player">${resultPlayerNameHtml(left)}</td>
+        <td class="paired-paid paired-left-paid">${resultPaidHtml(left, 'left')}</td>
+        <td class="paired-player paired-left-player">${resultPlayerNameHtml(left, 'left')}</td>
         <td class="paired-slot">${slot}</td>
-        <td class="paired-player paired-right-player">${resultPlayerNameHtml(right)}</td>
-        <td class="paired-paid paired-right-paid">${resultPaidHtml(right)}</td>
+        <td class="paired-player paired-right-player">${resultPlayerNameHtml(right, 'right')}</td>
+        <td class="paired-paid paired-right-paid">${resultPaidHtml(right, 'right')}</td>
       </tr>
     `;
   }
@@ -848,6 +2712,7 @@ function renderResults(){
       name: p.name,
       pos: p.assignedPos,
       naturalPos: p.pos,
+      positions: eligiblePositions(p),
       bigShift: p.posPenaltyDist === 2,
       price: p.soldPrice,
       tag
@@ -915,7 +2780,7 @@ function render(){
         <div class="auction-top">
           <div>
             <div class="auction-player">${player.name}</div>
-            <div class="auction-meta">${player.pos} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+            <div class="auction-meta">${formatPositions(player)} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
           </div>
           <div class="bid-display">
             <div class="lbl">Current Bid</div>
@@ -965,9 +2830,9 @@ function rosterHtml(side){
   ROSTER_LAYOUT.forEach(posLabel=>{
     const p = byPos[posLabel][counts[posLabel]++];
     if(p){
-      const oop = p.pos !== p.assignedPos;
+      const oop = isOutOfPosition(p, p.assignedPos);
       const oopTag = oop
-        ? `<span style="color:${p.posPenaltyDist===2?'var(--danger)':'var(--gold)'}; font-size:10px;" title="Natural position: ${p.pos}">·OOP</span>`
+        ? `<span style="color:${p.posPenaltyDist===2?'var(--danger)':'var(--gold)'}; font-size:10px;" title="Eligible positions: ${formatPositions(p)}">·OOP</span>`
         : '';
       html += `<div class="roster-slot"><span><span class="mono" style="color:var(--chalk-dim);">[${posLabel}]</span> ${p.name} ${oopTag}</span><span class="price">$${p.soldPrice}</span></div>`;
     } else {
@@ -1230,7 +3095,7 @@ function renderFriendState(){
         <div class="auction-top">
           <div>
             <div class="auction-player">${player.name}</div>
-            <div class="auction-meta">${player.pos} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
+            <div class="auction-meta">${formatPositions(player)} · ${player.ppg} PPG · ${player.rpg} RPG · ${player.apg} APG · DEF ${player.def}/10</div>
           </div>
           <div class="bid-display">
             <div class="lbl">Current Bid</div>
