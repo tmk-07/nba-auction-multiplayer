@@ -2383,7 +2383,11 @@ export class AuctionRoom {
   // read from the platform rather than an in-memory Map that would be wiped
   // if this Durable Object gets evicted (idle eviction, load balancing, or a
   // new deploy picking up new code).
-  socketsFor(side){ return this.state.getWebSockets(side); }
+  // getWebSockets() can briefly still list a socket that is closing/closed -
+  // filter to ones that are actually open so a departing player isn't
+  // mistaken for still-connected (which was hiding disconnect notices and
+  // wrongly blocking reconnects with a false "room full").
+  socketsFor(side){ return this.state.getWebSockets(side).filter(ws => ws.readyState === 1); }
   connectedMap(){ return {host: this.socketsFor('host').length > 0, guest: this.socketsFor('guest').length > 0}; }
   async fetch(request){
     try{
