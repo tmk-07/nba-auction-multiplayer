@@ -2693,7 +2693,7 @@ function resultPlayerNameHtml(p, side='left'){
   const positions = p.positions || (p.naturalPos ? [p.naturalPos] : [p.pos]);
   const isOop = !positions.includes(p.pos);
   const oopNote = isOop
-    ? `<span class="oop-note">(eligible ${positions.join('/')}${p.bigShift ? ', big shift' : ''})</span>`
+    ? `<span class="oop-note">(${positions.join('/')}${p.bigShift ? ', big shift' : ''})</span>`
     : '';
 
   // Left side is right-aligned, so put the note before the name. That keeps
@@ -2711,11 +2711,15 @@ function resultPaidHtml(p, side='left'){
 
   const price = `<span class="paired-price">$${p.price}</span>`;
   const tag = resultTagHtml(p.tag);
-  if(!tag) return price;
+  const tagSlot = `<span class="paired-tag-slot">${tag}</span>`;
+  const priceSlot = `<span class="paired-price-slot">${price}</span>`;
 
-  // Right side is right-aligned, so putting the tag before the price keeps
-  // all dollar amounts flush on the outside edge.
-  return side === 'right' ? `${tag} ${price}` : `${price} ${tag}`;
+  // Use fixed internal slots so steal/overpay labels and dollar amounts line up
+  // instead of shifting around based on $1/$10 width.
+  if(side === 'right'){
+    return `<span class="paid-align paid-align-right">${tagSlot}${priceSlot}</span>`;
+  }
+  return `<span class="paid-align paid-align-left">${priceSlot}${tagSlot}</span>`;
 }
 
 function pairedRosterTable(leftTitle, rightTitle, leftRows, rightRows){

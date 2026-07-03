@@ -411,3 +411,49 @@
 .results .paired-left-paid .overpay{
   margin-left:4px;
 }
+
+
+/* v2.5.14 results tag/price fixed alignment */
+.results .paid-align{
+  display:inline-grid;
+  align-items:baseline;
+  column-gap:6px;
+  width:100%;
+}
+.results .paid-align-left{
+  grid-template-columns:44px 74px;
+  justify-content:start;
+  text-align:left;
+}
+.results .paid-align-right{
+  grid-template-columns:74px 44px;
+  justify-content:end;
+  text-align:right;
+}
+.results .paired-price-slot{
+  display:inline-block;
+  font-variant-numeric:tabular-nums;
+}
+.results .paid-align-left .paired-price-slot{
+  text-align:left;
+}
+.results .paid-align-right .paired-price-slot{
+  text-align:right;
+}
+.results .paired-tag-slot{
+  display:inline-block;
+  min-width:0;
+}
+.results .paid-align-left .paired-tag-slot{
+  text-align:left;
+}
+.results .paid-align-right .paired-tag-slot{
+  text-align:right;
+}
+.results .paired-left-paid .steal,
+.results .paired-left-paid .overpay,
+.results .paired-right-paid .steal,
+.results .paired-right-paid .overpay{
+  margin-left:0;
+  margin-right:0;
+}
