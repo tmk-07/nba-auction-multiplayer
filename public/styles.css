@@ -1569,3 +1569,36 @@
 .share-snapshot-sample .rematch-status{
   display:none !important;
 }
+
+/* Share PNG typography overrides - scoped only to the export clone */
+.share-snapshot-sample .results-brand {
+  white-space: nowrap;
+  min-width: max-content;
+  flex-shrink: 0;
+}
+
+.share-snapshot-sample .results-brand span {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.share-snapshot-sample .score-card .label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
+.share-snapshot-sample .results-radar-panel h2 {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.share-snapshot-sample .results .paired-title-row th {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  letter-spacing: 0;
+}
