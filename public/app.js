@@ -3598,7 +3598,7 @@ function shareCardMarkup(data){
         </div>
       </div>
       ${pairedRosterTable(data.leftTitle, data.rightTitle, data.leftRows, data.rightRows)}
-      <div class="results-url">Think you can draft better? startingfive.tkimify.com</div>
+      <div class="results-url">startingfive.tkimify.com</div>
     </div>`;
 }
 

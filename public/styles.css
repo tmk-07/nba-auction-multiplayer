@@ -1034,3 +1034,52 @@
 .share-export-card .share-results-btn{
   display:none !important;
 }
+
+
+/* v2.7.8 share/result spacing polish */
+.results-actions{
+  margin-top:16px;
+}
+.results-actions .restart-btn,
+.results-actions .share-results-btn{
+  margin-top:0;
+}
+.share-modal-card{
+  padding-bottom:10px;
+}
+.share-modal-status:empty{
+  display:none;
+}
+.share-modal-status{
+  margin-top:6px;
+  min-height:9px;
+}
+
+/* v2.7.8 exact Codex share-card export overrides */
+.share-export-card .paid-align-left{
+  grid-template-columns:28px 38px;
+  justify-content:start;
+  text-align:left;
+}
+.share-export-card .paid-align-right{
+  grid-template-columns:38px 28px;
+  justify-content:end;
+  text-align:right;
+}
+.share-export-card .paired-tag-slot,
+.share-export-card .steal,
+.share-export-card .overpay{
+  font-size:8.5px;
+}
+.share-export-card .results-url{
+  margin-top:8px;
+  align-self:flex-end;
+  padding-top:0;
+  text-align:left;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  line-height:1;
+  color:var(--chalk-dim);
+  opacity:0.9;
+  letter-spacing:normal;
+}
