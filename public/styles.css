@@ -557,7 +557,7 @@
 }
 
 
-/* v2.7.0 online card height + active count alignment */
+/* v2.7.1 online card height + active count alignment */
 .online-options-grid{
   align-items:start;
 }
@@ -587,5 +587,73 @@
   .online-option-card{
     height:auto;
     min-height:170px;
+  }
+}
+
+
+/* v2.7.1 online card alignment + centered matchmaking text */
+.online-options-grid{
+  align-items:start;
+}
+.online-option-card{
+  height:205px;
+  min-height:205px;
+  display:grid;
+  grid-template-rows:auto 46px 1fr auto 22px;
+  gap:8px;
+}
+.online-option-card h2{
+  min-height:22px;
+  margin:0;
+}
+.online-option-card p{
+  min-height:46px;
+  margin:0;
+}
+.online-option-card .input-row{
+  grid-row:4;
+  margin-top:0;
+  align-self:end;
+}
+.online-option-card #findOpponentBtn{
+  grid-row:4;
+  margin-top:0;
+  align-self:end;
+  justify-self:start;
+}
+.online-column .online-option-card::after{
+  content:"";
+  grid-row:5;
+  display:block;
+  height:22px;
+}
+.active-player-count{
+  grid-row:5;
+  margin:0;
+  align-self:start;
+  line-height:1.2;
+}
+.waiting{
+  font-family:'JetBrains Mono', monospace;
+  font-style:normal;
+}
+.finding-opponent-panel{
+  min-height:240px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+}
+.finding-opponent-text{
+  font-family:'JetBrains Mono', monospace;
+  font-size:20px;
+  font-weight:800;
+  color:var(--gold);
+  letter-spacing:0.01em;
+}
+@media (max-width:700px){
+  .online-option-card{
+    height:205px;
+    min-height:205px;
   }
 }

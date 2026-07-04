@@ -3103,6 +3103,8 @@ function showFriendPanel(){
   document.getElementById('landingPanel').classList.add('hidden');
   document.getElementById('friendPanel').classList.remove('hidden');
   populatePlayerName();
+  const findBtn = document.getElementById('findOpponentBtn');
+  if(findBtn) findBtn.disabled = false;
   setFriendStatus('');
   startActivePlayerPolling();
 }
@@ -3242,7 +3244,7 @@ async function joinFriendRoom(){
 async function findOnlineOpponent(){
   const btn = document.getElementById('findOpponentBtn');
   if(btn) btn.disabled = true;
-  setFriendStatus('Finding an opponent...');
+  setFriendStatus('Finding an opponent…');
   try{
     const res = await fetch(apiUrl(`/api/match/find?session=${encodeURIComponent(ACTIVE_SESSION_ID)}&mode=online-match`), {
       method:'POST',
@@ -3258,7 +3260,7 @@ async function findOnlineOpponent(){
       codeEl.classList.add('hidden');
     }
     if(!data.code || !data.side) throw new Error('No match returned');
-    setFriendStatus(data.side === 'host' ? 'Finding an opponent...' : 'Opponent found. Joining game...');
+    setFriendStatus(data.side === 'host' ? 'Finding an opponent…' : 'Opponent found. Joining game…');
     connectFriendRoom(data.code, data.side, 'online');
   }catch(err){
     setFriendStatus(`Could not find opponent. ${err.message || err}`, true);
@@ -3275,11 +3277,11 @@ function connectFriendRoom(code, side, matchType='friend'){
   startActivePresence(matchType === 'online' ? 'online-game' : 'friend-game');
   APP_MODE = 'friend';
   setGameLabels('Opponent');
-  setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent...' : `Room ${code} created. Waiting for friend...`) : `Joining room ${code}...`);
+  setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : `Room ${code} created. Waiting for friend...`) : `Joining room ${code}...`);
   const nameParam = name ? `&name=${encodeURIComponent(name)}` : '';
   const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}${nameParam}`));
   FRIEND_WS = ws;
-  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent...' : `Room ${code}. Send this code to your friend.`) : `Connected to room ${code}.`));
+  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : `Room ${code}. Send this code to your friend.`) : `Connected to room ${code}.`));
   ws.addEventListener('message', (event)=>{
     let msg;
     try{ msg = JSON.parse(event.data); }catch(e){ return; }
@@ -3344,6 +3346,15 @@ function renderFriendLog(state){
     let text = entry.text || '';
     text = text.replace(/\bHost\b/g, mySide === 'host' ? 'You' : oppName);
     text = text.replace(/\bGuest\b/g, mySide === 'guest' ? 'You' : oppName);
+    if(entry.who === mySide){
+      text = text
+        .replace(/\bYou opens\b/g, 'You open')
+        .replace(/\bYou raises\b/g, 'You raise')
+        .replace(/\bYou passes\b/g, 'You pass')
+        .replace(/\bYou wins\b/g, 'You win')
+        .replace(/\bYou receives\b/g, 'You receive')
+        .replace(/\bYou gets\b/g, 'You get');
+    }
     d.textContent = text;
     box.appendChild(d);
   });
@@ -3388,7 +3399,7 @@ function renderFriendState(){
   } else if(state.status === 'waiting'){
     const isOnlineMatch = state.matchType === 'online' || FRIEND_MATCH_TYPE === 'online';
     aArea.innerHTML = isOnlineMatch
-      ? `<div class="auction-panel" style="text-align:center;"><div class="waiting">Finding an opponent...</div></div>`
+      ? `<div class="auction-panel finding-opponent-panel"><div class="finding-opponent-text">Finding an opponent…</div></div>`
       : `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
   } else if(state.auction && state.auction.autoFill){
     const player = state.auction.player;

@@ -2447,6 +2447,10 @@ export class AuctionRoom {
         delete presence[session];
         await this.state.storage.put('activePresence', presence);
       }
+      const waiting = await this.state.storage.get('matchWaiting');
+      if(waiting && waiting.session === session){
+        await this.state.storage.delete('matchWaiting');
+      }
     }
     const active = await this.prunePresence();
     return new Response(JSON.stringify({ok:true, activePlayers:Object.keys(active).length}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
@@ -2476,9 +2480,10 @@ export class AuctionRoom {
       const statusRes = await waitingStub.fetch('https://room/status', {method:'GET'});
       if(!statusRes.ok) return false;
       const statusData = await statusRes.json();
-      const hostConnected = !!(statusData.connected && statusData.connected.host);
-      const withinConnectGrace = Date.now() - (waiting.createdAt || 0) < 10000;
-      return !!(statusData.exists && !statusData.over && statusData.status === 'waiting' && !statusData.full && (hostConnected || withinConnectGrace));
+      // If a waiting match room exists and has no guest yet, pair the next player into it.
+      // Do not require the host websocket to already be connected; otherwise two users can
+      // end up waiting in separate rooms if the first user's connection is slow.
+      return !!(statusData.exists && !statusData.over && statusData.status === 'waiting' && !statusData.full);
     }catch(e){
       return false;
     }
