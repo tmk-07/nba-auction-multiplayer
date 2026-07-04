@@ -26,6 +26,7 @@
   .site-logo{width:34px; height:34px; display:block; flex:0 0 auto;}
   .subtitle{color:var(--chalk-dim); font-size:13px; margin-bottom:18px;}
   .mono{font-family:'JetBrains Mono',monospace;}
+  #gameScreen{margin-top:22px;}
 
     .game-bottom-actions{
     display:flex; justify-content:flex-end; align-items:center; margin-top:14px;

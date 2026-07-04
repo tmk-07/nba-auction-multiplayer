@@ -2872,7 +2872,11 @@ function render(){
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
-    document.getElementById('botExitBtn').classList.toggle('hidden', APP_MODE !== 'bot');
+  const bottomNavBtn = document.getElementById('botExitBtn');
+  if(bottomNavBtn){
+    bottomNavBtn.textContent = 'Exit';
+    bottomNavBtn.classList.toggle('hidden', APP_MODE !== 'bot');
+  }
 
   document.getElementById('youBudget').textContent = '$'+G.budgets.user;
   document.getElementById('botBudget').textContent = '$'+G.budgets.bot;
@@ -3045,7 +3049,7 @@ function showFriendPanel(){
   APP_MODE = 'friend-setup';
   document.getElementById('landingPanel').classList.add('hidden');
   document.getElementById('friendPanel').classList.remove('hidden');
-  setFriendStatus('Create a game or enter a room code.');
+  setFriendStatus('Create a room or enter a room code.');
 }
 
 function disconnectFriend(){
@@ -3197,7 +3201,11 @@ function renderFriendState(){
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
-  document.getElementById('botExitBtn').classList.add('hidden');
+  const bottomNavBtn = document.getElementById('botExitBtn');
+  if(bottomNavBtn){
+    bottomNavBtn.textContent = state.status === 'waiting' ? 'Back' : 'Exit';
+    bottomNavBtn.classList.toggle('hidden', state.status !== 'waiting');
+  }
 
   document.getElementById('youBudget').textContent = '$'+state.me.budget;
   document.getElementById('botBudget').textContent = '$'+state.opponent.budget;
