@@ -3666,7 +3666,7 @@ function buildShareExportNode(){
 
 function shareFileName(){
   const stamp = new Date().toISOString().slice(0,10);
-  return `starting-five-results-${stamp}.png`;
+  return `my-starting-five.png`;
 }
 
 async function downloadResultsPng(){
