@@ -3570,38 +3570,6 @@ function restart(){
 
 
 
-function shareCardMarkup(data){
-  return `
-    <div class="results">
-      <div class="results-brand">
-        <img class="results-brand-logo" src="logo.png" alt="Starting Five logo">
-        <span>Starting Five</span>
-      </div>
-      <div class="results-summary-compact">
-        <div class="results-left-summary">
-          <div class="winner-banner ${data.winnerClass}">${data.winnerLabel}</div>
-          <div class="results-rating-stack">
-            <div class="score-card you">
-              <div class="label">${data.myRatingLabel}</div>
-              <div class="value mono">${data.myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
-            </div>
-            <div class="score-card bot">
-              <div class="label">${data.oppRatingLabel}</div>
-              <div class="value mono">${data.oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
-            </div>
-          </div>
-        </div>
-        <div class="results-radar-panel">
-          <h2>Team Shape</h2>
-          ${buildRadarSVG(data.labels, data.myAxes, data.oppAxes)}
-          <div class="results-radar-legend"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> ${data.legendOpponent}</div>
-        </div>
-      </div>
-      ${pairedRosterTable(data.leftTitle, data.rightTitle, data.leftRows, data.rightRows)}
-      <div class="results-url">startingfive.tkimify.com</div>
-    </div>`;
-}
-
 function openShareModal(){
   const modal = document.getElementById('shareModal');
   if(!modal) return;
@@ -3627,7 +3595,8 @@ function closeShareModal(){
 }
 
 function buildShareExportNode(){
-  if(!LAST_SHARE_RESULT) throw new Error('No results are available to share yet.');
+  const liveResults = document.querySelector('#resultsScreen .results');
+  if(!liveResults) throw new Error('No results are available to share yet.');
 
   const previewBody = document.createElement('div');
   previewBody.className = 'share-snapshot-sample';
@@ -3637,7 +3606,7 @@ function buildShareExportNode(){
 
   const previewResultsScreen = document.createElement('div');
   previewResultsScreen.id = 'resultsScreen';
-  previewResultsScreen.innerHTML = shareCardMarkup(LAST_SHARE_RESULT).trim();
+  previewResultsScreen.appendChild(liveResults.cloneNode(true));
 
   previewWrap.appendChild(previewResultsScreen);
   previewBody.appendChild(previewWrap);
@@ -3711,3 +3680,4 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && !document.getElementById('shareModal').classList.contains('hidden')) closeShareModal();
 });
 showLanding();
+

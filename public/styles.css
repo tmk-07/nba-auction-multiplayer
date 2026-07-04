@@ -897,7 +897,6 @@
   letter-spacing:0.04em;
   text-transform:uppercase;
   color:var(--chalk);
-  white-space:nowrap;
 }
 
 .results-brand-logo{
@@ -1306,7 +1305,6 @@
     max-width:560px;
   }
 }
-
 /* v2.7.8 share/result spacing polish */
 .results-actions{
   margin-top:16px;
@@ -1324,148 +1322,4 @@
 .share-modal-status{
   margin-top:6px;
   min-height:9px;
-}
-
-
-/* v2.7.10 export polish fixes */
-.share-snapshot-sample .results-brand{
-  right: 10px;
-  gap: 5px;
-  font-size: 13px;
-  white-space: nowrap;
-}
-
-.share-snapshot-sample .score-card .label{
-  font-family:'JetBrains Mono', monospace;
-  font-size:9px;
-  letter-spacing:0;
-  text-transform:none;
-}
-
-.share-snapshot-sample .winner-banner{
-  font-family:'Oswald', sans-serif;
-  font-weight:700;
-}
-
-.share-snapshot-sample .results-radar-panel h2,
-.share-snapshot-sample .results .paired-title-row th{
-  font-family:'Oswald', sans-serif;
-  font-weight:700;
-  letter-spacing:0.03em;
-  text-transform:uppercase;
-}
-
-.share-snapshot-sample .results-radar-panel svg text{
-  font-family:'Oswald', sans-serif !important;
-}
-
-/* Pull radar labels tighter to the pentagon in the export card */
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(1){
-  transform: translateY(8px);
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(3),
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(4){
-  transform: translateY(-10px);
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-
-/* v2.7.11 exact-codex export font/spacing fixes */
-.share-snapshot-sample .results-brand{
-  right: 16px;
-  gap: 4px;
-  font-size: 12px;
-  letter-spacing: 0.01em;
-  line-height: 1;
-  white-space: nowrap;
-  overflow: visible;
-  max-width: none;
-  padding-right: 3px;
-}
-
-.share-snapshot-sample .winner-banner,
-.share-snapshot-sample .winner-banner.you,
-.share-snapshot-sample .winner-banner.bot{
-  font-family:'Oswald', sans-serif;
-  font-weight:700;
-}
-
-.share-snapshot-sample .score-card .label,
-.share-snapshot-sample .score-card .sub{
-  font-family:'JetBrains Mono', monospace;
-  letter-spacing:0;
-  text-transform:none;
-}
-
-.share-snapshot-sample .results-radar-panel h2{
-  font-family:'Oswald', sans-serif;
-  font-weight:700;
-  text-transform:uppercase;
-  letter-spacing:0.03em;
-  color:var(--chalk-dim) !important;
-}
-
-.share-snapshot-sample .results .paired-title-row th{
-  font-family:'Oswald', sans-serif;
-  font-weight:700;
-  letter-spacing:0.03em;
-  text-transform:uppercase;
-  color:var(--chalk);
-}
-
-/* Use actual results-screen font mix in roster table */
-.share-snapshot-sample .results .paired-player,
-.share-snapshot-sample .results .paired-price-slot,
-.share-snapshot-sample .results .paired-tag-slot,
-.share-snapshot-sample .results .oop-note,
-.share-snapshot-sample .results .steal,
-.share-snapshot-sample .results .overpay,
-.share-snapshot-sample .results .paired-empty{
-  font-family:'Inter', sans-serif;
-}
-
-.share-snapshot-sample .results .paired-slot{
-  font-family:'JetBrains Mono', monospace;
-  font-weight:800;
-}
-
-/* Match actual draft-screen steal/overpay spacing */
-.share-snapshot-sample .results .paid-align{
-  column-gap: 6px;
-}
-
-.share-snapshot-sample .results .paid-align-left{
-  grid-template-columns: 44px 74px;
-}
-
-.share-snapshot-sample .results .paid-align-right{
-  grid-template-columns: 74px 44px;
-}
-
-.share-snapshot-sample .results .paid-align-left .paired-tag-slot{
-  transform: translateX(-15px);
-  text-align:left;
-}
-
-.share-snapshot-sample .results .paid-align-right .paired-tag-slot{
-  transform: translateX(15px);
-  text-align:right;
-}
-
-/* Nudge radar labels toward the pentagon */
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(1){
-  transform: translateY(10px);
-  transform-box: fill-box;
-  transform-origin: center;
-}
-
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(3),
-.share-snapshot-sample .results-radar-panel svg text:nth-of-type(4){
-  transform: translateY(-12px);
-  transform-box: fill-box;
-  transform-origin: center;
 }
