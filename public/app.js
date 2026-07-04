@@ -3598,6 +3598,53 @@ function buildShareExportNode(){
   const liveResults = document.querySelector('#resultsScreen .results');
   if(!liveResults) throw new Error('No results are available to share yet.');
 
+  const clone = liveResults.cloneNode(true);
+
+  const winnerBanner = clone.querySelector('.winner-banner');
+  const scoreboard = clone.querySelector('.scoreboard');
+  const heading = clone.querySelector('h2');
+  const svg = clone.querySelector('svg');
+  const legend = svg ? svg.nextElementSibling : null;
+  const pairedRosters = clone.querySelector('.paired-rosters');
+
+  const leftSummary = document.createElement('div');
+  leftSummary.className = 'results-left-summary';
+  if(winnerBanner) leftSummary.appendChild(winnerBanner);
+
+  const ratingStack = document.createElement('div');
+  ratingStack.className = 'results-rating-stack';
+  if(scoreboard){
+    while(scoreboard.firstChild) ratingStack.appendChild(scoreboard.firstChild);
+    scoreboard.remove();
+  }
+  leftSummary.appendChild(ratingStack);
+
+  const radarPanel = document.createElement('div');
+  radarPanel.className = 'results-radar-panel';
+  if(heading) radarPanel.appendChild(heading);
+  if(svg) radarPanel.appendChild(svg);
+  if(legend){
+    legend.classList.add('results-radar-legend');
+    radarPanel.appendChild(legend);
+  }
+
+  const summary = document.createElement('div');
+  summary.className = 'results-summary-compact';
+  summary.appendChild(leftSummary);
+  summary.appendChild(radarPanel);
+
+  clone.insertBefore(summary, pairedRosters || clone.firstChild);
+
+  const brand = document.createElement('div');
+  brand.className = 'results-brand';
+  brand.innerHTML = '<img class="results-brand-logo" src="logo.png" alt="Starting Five logo"><span>Starting Five</span>';
+  clone.prepend(brand);
+
+  const urlTag = document.createElement('div');
+  urlTag.className = 'results-url';
+  urlTag.textContent = 'startingfive.tkimify.com';
+  clone.appendChild(urlTag);
+
   const previewBody = document.createElement('div');
   previewBody.className = 'share-snapshot-sample';
 
@@ -3606,7 +3653,7 @@ function buildShareExportNode(){
 
   const previewResultsScreen = document.createElement('div');
   previewResultsScreen.id = 'resultsScreen';
-  previewResultsScreen.appendChild(liveResults.cloneNode(true));
+  previewResultsScreen.appendChild(clone);
 
   previewWrap.appendChild(previewResultsScreen);
   previewBody.appendChild(previewWrap);

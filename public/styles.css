@@ -1192,16 +1192,16 @@
 .share-snapshot-sample .results-radar-panel svg{
   grid-column:1;
   grid-row:1;
-  width:286px !important;
-  max-width:286px !important;
-  margin:-8px auto -40px !important;
+  width:340px !important;
+  max-width:340px !important;
+  margin:-4px auto -30px !important;
   justify-self:center;
 }
 
 .share-snapshot-sample .results-radar-legend{
   grid-column:1;
   grid-row:2;
-  width:286px;
+  width:340px;
   margin-top:0 !important;
   text-align:center;
   font-size:11px;
