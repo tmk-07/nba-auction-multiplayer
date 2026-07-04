@@ -3011,10 +3011,14 @@ let ACTIVE_PRESENCE_TIMER = null;
 let FRIEND_MATCH_TYPE = 'friend';
 const ACTIVE_SESSION_ID = (()=>{
   const key = 'STARTING_FIVE_ACTIVE_SESSION_ID';
-  let id = localStorage.getItem(key);
+  let id = sessionStorage.getItem(key);
   if(!id){
-    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-    localStorage.setItem(key, id);
+    if(window.crypto && crypto.randomUUID){
+      id = crypto.randomUUID();
+    } else {
+      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    }
+    sessionStorage.setItem(key, id);
   }
   return id;
 })();

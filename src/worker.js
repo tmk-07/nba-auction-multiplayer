@@ -2515,19 +2515,17 @@ export class AuctionRoom {
         }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
       }
 
-      const canPair = await this.waitingRoomCanAcceptGuest(waiting);
-      if(canPair){
-        await this.state.storage.delete('matchWaiting');
-        return new Response(JSON.stringify({
-          code: waiting.code,
-          side: 'guest',
-          waiting: false,
-          activePlayers: Object.keys(presence).length
-        }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
-      }
-
+      // Pair the next distinct searcher into the existing waiting room immediately.
+      // This is intentionally optimistic: it prevents two users from getting stuck
+      // in separate waiting rooms because of a transient status check or a slow
+      // WebSocket connection from the first player.
       await this.state.storage.delete('matchWaiting');
-      waiting = null;
+      return new Response(JSON.stringify({
+        code: waiting.code,
+        side: 'guest',
+        waiting: false,
+        activePlayers: Object.keys(presence).length
+      }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
     }
 
     const code = makeCode();
