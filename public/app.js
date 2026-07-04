@@ -3003,6 +3003,7 @@ function rosterHtml(side){
 let APP_MODE = 'home';
 let FRIEND_WS = null;
 let FRIEND_STATE = null;
+let ACTIVE_COUNT_TIMER = null;
 
 // When the frontend is served by the same Cloudflare Worker as the multiplayer API,
 // leave this blank. If you keep the static site on Pages and deploy the Worker
@@ -3021,15 +3022,48 @@ function setFriendStatus(text, isError=false){
   if(el){ el.textContent = text || ''; el.style.color = isError ? 'var(--danger)' : 'var(--chalk-dim)'; }
 }
 
+function possessiveName(name){
+  if(!name) return '';
+  return name.endsWith('s') ? `${name}'` : `${name}'s`;
+}
+
+function opponentBudgetLabel(opponentLabel){
+  if(!opponentLabel || opponentLabel === 'Bot' || opponentLabel === 'Opponent') return `${opponentLabel || 'Opponent'} Budget`;
+  return `${possessiveName(opponentLabel)} Budget`;
+}
+
 function setGameLabels(opponentLabel){
   const ybl = document.getElementById('youBudgetLabel');
   const bbl = document.getElementById('botBudgetLabel');
   const yrt = document.getElementById('youRosterTitle');
   const brt = document.getElementById('botRosterTitle');
   if(ybl) ybl.textContent = 'Your Budget';
-  if(bbl) bbl.textContent = `${opponentLabel} Budget`;
+  if(bbl) bbl.textContent = opponentBudgetLabel(opponentLabel);
   if(yrt) yrt.textContent = 'You';
-  if(brt) brt.textContent = opponentLabel;
+  if(brt) brt.textContent = opponentLabel || 'Opponent';
+}
+
+function cleanPlayerName(name){
+  return (name || '').trim().replace(/\s+/g, ' ').slice(0,18);
+}
+
+function getPlayerName(){
+  const input = document.getElementById('playerNameInput');
+  const name = cleanPlayerName(input ? input.value : localStorage.getItem('STARTING_FIVE_PLAYER_NAME'));
+  if(name) localStorage.setItem('STARTING_FIVE_PLAYER_NAME', name);
+  return name;
+}
+
+function populatePlayerName(){
+  const input = document.getElementById('playerNameInput');
+  if(input && !input.value){
+    input.value = localStorage.getItem('STARTING_FIVE_PLAYER_NAME') || '';
+  }
+}
+
+function opponentDisplayName(state){
+  const name = cleanPlayerName(state && state.opponent && state.opponent.name);
+  return name || 'Opponent';
 }
 
 function showLanding(){
@@ -3044,6 +3078,7 @@ function showLanding(){
   document.getElementById('gameScreen').classList.add('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
   document.getElementById('roomCodeDisplay').classList.add('hidden');
+  stopActivePlayerPolling();
   setFriendStatus('');
 }
 
@@ -3051,7 +3086,42 @@ function showFriendPanel(){
   APP_MODE = 'friend-setup';
   document.getElementById('landingPanel').classList.add('hidden');
   document.getElementById('friendPanel').classList.remove('hidden');
-  setFriendStatus('Create a room or enter a room code.');
+  populatePlayerName();
+  setFriendStatus('');
+  startActivePlayerPolling();
+}
+
+function stopActivePlayerPolling(){
+  if(ACTIVE_COUNT_TIMER){
+    clearInterval(ACTIVE_COUNT_TIMER);
+    ACTIVE_COUNT_TIMER = null;
+  }
+}
+
+function setActivePlayerCount(count){
+  const el = document.getElementById('activePlayerCount');
+  if(!el) return;
+  if(typeof count === 'number') el.textContent = `Active players: ${count}`;
+  else el.textContent = 'Active players: —';
+}
+
+async function updateActivePlayerCount(){
+  const el = document.getElementById('activePlayerCount');
+  if(!el || APP_MODE !== 'friend-setup') return;
+  try{
+    const res = await fetch(apiUrl('/api/match/status'));
+    if(!res.ok) throw new Error('status failed');
+    const data = await res.json();
+    setActivePlayerCount(Number(data.activePlayers || 0));
+  }catch(err){
+    setActivePlayerCount(null);
+  }
+}
+
+function startActivePlayerPolling(){
+  stopActivePlayerPolling();
+  updateActivePlayerCount();
+  ACTIVE_COUNT_TIMER = setInterval(updateActivePlayerCount, 5000);
 }
 
 function disconnectFriend(){
@@ -3117,12 +3187,43 @@ async function joinFriendRoom(){
   connectFriendRoom(code, 'guest');
 }
 
+async function findOnlineOpponent(){
+  const btn = document.getElementById('findOpponentBtn');
+  if(btn) btn.disabled = true;
+  setFriendStatus('Finding opponent...');
+  try{
+    const res = await fetch(apiUrl('/api/match/find'), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name:getPlayerName()})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    if(typeof data.activePlayers === 'number') setActivePlayerCount(data.activePlayers);
+    const codeEl = document.getElementById('roomCodeDisplay');
+    if(codeEl){
+      codeEl.textContent = data.code || '';
+      codeEl.classList.toggle('hidden', !data.code || !data.waiting);
+    }
+    if(!data.code || !data.side) throw new Error('No match returned');
+    setFriendStatus(data.side === 'host' ? 'Looking for opponent...' : 'Opponent found. Joining game...');
+    connectFriendRoom(data.code, data.side);
+  }catch(err){
+    setFriendStatus(`Could not find opponent. ${err.message || err}`, true);
+    if(btn) btn.disabled = false;
+    updateActivePlayerCount();
+  }
+}
+
 function connectFriendRoom(code, side){
+  const name = getPlayerName();
   disconnectFriend();
+  stopActivePlayerPolling();
   APP_MODE = 'friend';
   setGameLabels('Opponent');
   setFriendStatus(side==='host' ? `Room ${code} created. Waiting for friend...` : `Joining room ${code}...`);
-  const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}`));
+  const nameParam = name ? `&name=${encodeURIComponent(name)}` : '';
+  const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}${nameParam}`));
   FRIEND_WS = ws;
   ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? `Room ${code}. Send this code to your friend.` : `Connected to room ${code}.`));
   ws.addEventListener('message', (event)=>{
@@ -3181,13 +3282,14 @@ function renderFriendLog(state){
   if(!box) return;
   const mySide = state.side;
   const oppSide = mySide === 'host' ? 'guest' : 'host';
+  const oppName = opponentDisplayName(state);
   box.innerHTML = '';
   (state.log || []).forEach(entry=>{
     const d = document.createElement('div');
     d.className = entry.who === mySide ? 'you-log' : (entry.who === oppSide ? 'bot-log' : 'sys-log');
     let text = entry.text || '';
-    text = text.replace(/\bHost\b/g, mySide === 'host' ? 'You' : 'Opponent');
-    text = text.replace(/\bGuest\b/g, mySide === 'guest' ? 'You' : 'Opponent');
+    text = text.replace(/\bHost\b/g, mySide === 'host' ? 'You' : oppName);
+    text = text.replace(/\bGuest\b/g, mySide === 'guest' ? 'You' : oppName);
     d.textContent = text;
     box.appendChild(d);
   });
@@ -3200,6 +3302,7 @@ function renderFriendState(){
   if(state.over && state.results){ renderFriendResults(state); return; }
 
   applyFriendStateToG(state);
+  setGameLabels(opponentDisplayName(state));
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
@@ -3313,11 +3416,12 @@ function renderFriendResults(state){
   rs.classList.remove('hidden');
 
   const r = state.results;
+  const oppLabel = opponentDisplayName(state);
   const myScore = r.scores[state.side];
   const oppScore = r.scores[state.opponent.side];
   const myAxes = r.axes[state.side];
   const oppAxes = r.axes[state.opponent.side];
-  const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft! 🏆' : 'Opponent wins the draft.');
+  const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft! 🏆' : `${oppLabel} wins the draft.`);
   const winnerClass = r.winner === state.side || r.winner === 'tie' ? 'you' : 'bot';
   const rematch = state.rematch || {requested:{}, connected:{}};
   const myRequested = !!(rematch.requested && rematch.requested[state.side]);
@@ -3333,12 +3437,12 @@ function renderFriendResults(state){
       <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
       <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
         <div class="score-card you"><div class="label">Your Team Rating</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
-        <div class="score-card bot"><div class="label">Opponent Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+        <div class="score-card bot"><div class="label">${oppLabel} Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
       </div>
       <h2>Team Shape</h2>
       ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
       <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
-      ${pairedRosterTable('Your Roster', 'Opponent Roster', r.rows[state.side], r.rows[state.opponent.side])}
+      ${pairedRosterTable('Your Roster', `${oppLabel} Roster`, r.rows[state.side], r.rows[state.opponent.side])}
       <div class="results-actions">
         <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
         <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>
@@ -3358,6 +3462,8 @@ document.getElementById('botExitBtn').addEventListener('click', showLanding);
 document.getElementById('friendModeBtn').addEventListener('click', showFriendPanel);
 document.getElementById('createRoomBtn').addEventListener('click', createFriendRoom);
 document.getElementById('joinRoomBtn').addEventListener('click', joinFriendRoom);
+document.getElementById('findOpponentBtn').addEventListener('click', findOnlineOpponent);
 document.getElementById('backHomeBtn').addEventListener('click', showLanding);
 document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
+document.getElementById('playerNameInput').addEventListener('input', ()=>{ localStorage.setItem('STARTING_FIVE_PLAYER_NAME', cleanPlayerName(document.getElementById('playerNameInput').value)); });
 showLanding();
