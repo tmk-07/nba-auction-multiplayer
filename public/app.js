@@ -3757,7 +3757,7 @@ async function nativeShareResults(){
 
     const blob = await createSharePngBlob();
     const file = new File([blob], shareFileName(), {type:'image/png'});
-    const shareText = 'My Starting Five draft results';
+    const shareText = 'Think you can beat my team? Try at https://startingfive.tkimify.com';
 
     if(navigator.canShare && navigator.canShare({files:[file]})){
       await navigator.share({
@@ -3768,7 +3768,7 @@ async function nativeShareResults(){
     }else{
       await navigator.share({
         title:'Starting Five',
-        text:`${shareText} — https://startingfive.tkimify.com`
+        text:shareText
       });
     }
 
@@ -3787,11 +3787,10 @@ async function nativeShareResults(){
 }
 
 function shareResultsToTwitter(){
-  const text = encodeURIComponent('My Starting Five draft results');
-  const url = encodeURIComponent('https://startingfive.tkimify.com');
+  const text = encodeURIComponent('Think you can beat my team? startingfive.tkimify.com');
 
   window.open(
-    `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
+    `https://twitter.com/intent/tweet?text=${text}`,
     '_blank',
     'noopener,noreferrer'
   );
