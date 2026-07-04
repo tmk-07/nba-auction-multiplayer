@@ -3577,8 +3577,12 @@ function openShareModal(){
   if(!modal) return;
   const status = document.getElementById('shareModalStatus');
   const downloadBtn = document.getElementById('downloadShareBtn');
+  const nativeShareBtn = document.getElementById('nativeShareBtn');
+  const twitterShareBtn = document.getElementById('twitterShareBtn');
   if(status) status.textContent = '';
   if(downloadBtn) downloadBtn.disabled = false;
+  if(nativeShareBtn) nativeShareBtn.disabled = false;
+  if(twitterShareBtn) twitterShareBtn.disabled = false;
   modal.classList.remove('hidden');
   modal.setAttribute('aria-hidden', 'false');
 }
@@ -3588,8 +3592,12 @@ function closeShareModal(){
   const sandbox = document.getElementById('shareExportSandbox');
   const status = document.getElementById('shareModalStatus');
   const downloadBtn = document.getElementById('downloadShareBtn');
+  const nativeShareBtn = document.getElementById('nativeShareBtn');
+  const twitterShareBtn = document.getElementById('twitterShareBtn');
   if(status) status.textContent = '';
   if(downloadBtn) downloadBtn.disabled = false;
+  if(nativeShareBtn) nativeShareBtn.disabled = false;
+  if(twitterShareBtn) twitterShareBtn.disabled = false;
   if(sandbox) sandbox.innerHTML = '';
   if(!modal) return;
   modal.classList.add('hidden');
@@ -3669,50 +3677,124 @@ function shareFileName(){
   return `my-starting-five.png`;
 }
 
-async function downloadResultsPng(){
-  const status = document.getElementById('shareModalStatus');
-  const downloadBtn = document.getElementById('downloadShareBtn');
+async function createSharePngBlob(){
   const sandbox = document.getElementById('shareExportSandbox');
 
   if(!window.htmlToImage || typeof window.htmlToImage.toPng !== 'function'){
-    if(status) status.textContent = 'PNG export library failed to load';
-    return;
+    throw new Error('PNG export library failed to load');
   }
+
+  if(!sandbox){
+    throw new Error('Share export area is missing');
+  }
+
+  sandbox.innerHTML = '';
+
+  const exportNode = buildShareExportNode();
+  sandbox.appendChild(exportNode);
+  const captureNode = exportNode.querySelector('.results') || exportNode;
+
+  if(document.fonts && document.fonts.ready){
+    await document.fonts.ready;
+  }
+  await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+  const dataUrl = await window.htmlToImage.toPng(captureNode, {
+    cacheBust: true,
+    pixelRatio: 2,
+    backgroundColor: '#1C1E26'
+  });
+
+  const blob = await fetch(dataUrl).then(res => res.blob());
+
+  sandbox.innerHTML = '';
+
+  return blob;
+}
+
+async function downloadResultsPng(){
+  const status = document.getElementById('shareModalStatus');
+  const downloadBtn = document.getElementById('downloadShareBtn');
 
   try{
     if(downloadBtn) downloadBtn.disabled = true;
     if(status) status.textContent = 'Preparing PNG...';
 
-    if(sandbox) sandbox.innerHTML = '';
-    const exportNode = buildShareExportNode();
-    if(sandbox) sandbox.appendChild(exportNode);
-    const captureNode = exportNode.querySelector('.results') || exportNode;
-
-    if(document.fonts && document.fonts.ready){
-      await document.fonts.ready;
-    }
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-    const dataUrl = await window.htmlToImage.toPng(captureNode, {
-      cacheBust: true,
-      pixelRatio: 2,
-      backgroundColor: '#1C1E26'
-    });
+    const blob = await createSharePngBlob();
+    const url = URL.createObjectURL(blob);
 
     const link = document.createElement('a');
-    link.href = dataUrl;
+    link.href = url;
     link.download = shareFileName();
     document.body.appendChild(link);
     link.click();
     link.remove();
+
+    URL.revokeObjectURL(url);
 
     if(status) status.textContent = 'PNG downloaded';
     setTimeout(closeShareModal, 400);
   }catch(err){
     console.error('Failed to create share image', err);
     if(status) status.textContent = 'Could not create PNG. Try again.';
+  }finally{
     if(downloadBtn) downloadBtn.disabled = false;
   }
+}
+
+async function nativeShareResults(){
+  const status = document.getElementById('shareModalStatus');
+  const shareBtn = document.getElementById('nativeShareBtn');
+
+  try{
+    if(shareBtn) shareBtn.disabled = true;
+    if(status) status.textContent = 'Creating share image...';
+
+    if(!navigator.share){
+      if(status) status.textContent = 'Sharing is not supported here. Download the PNG instead.';
+      return;
+    }
+
+    const blob = await createSharePngBlob();
+    const file = new File([blob], shareFileName(), {type:'image/png'});
+    const shareText = 'My Starting Five draft results';
+
+    if(navigator.canShare && navigator.canShare({files:[file]})){
+      await navigator.share({
+        title:'Starting Five',
+        text:shareText,
+        files:[file]
+      });
+    }else{
+      await navigator.share({
+        title:'Starting Five',
+        text:`${shareText} — https://startingfive.tkimify.com`
+      });
+    }
+
+    if(status) status.textContent = 'Shared.';
+    setTimeout(closeShareModal, 400);
+  }catch(err){
+    if(err && err.name === 'AbortError'){
+      if(status) status.textContent = 'Share canceled.';
+    }else{
+      console.error('Failed to share image', err);
+      if(status) status.textContent = 'Could not share image. Try downloading it.';
+    }
+  }finally{
+    if(shareBtn) shareBtn.disabled = false;
+  }
+}
+
+function shareResultsToTwitter(){
+  const text = encodeURIComponent('My Starting Five draft results');
+  const url = encodeURIComponent('https://startingfive.tkimify.com');
+
+  window.open(
+    `https://twitter.com/intent/tweet?text=${text}&url=${url}`,
+    '_blank',
+    'noopener,noreferrer'
+  );
 }
 
 document.getElementById('botModeBtn').addEventListener('click', newGame);
@@ -3725,6 +3807,8 @@ document.getElementById('backHomeBtn').addEventListener('click', showLanding);
 document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
 document.getElementById('playerNameInput').addEventListener('input', ()=>{ localStorage.setItem('STARTING_FIVE_PLAYER_NAME', cleanPlayerName(document.getElementById('playerNameInput').value)); });
 document.getElementById('downloadShareBtn').addEventListener('click', downloadResultsPng);
+document.getElementById('nativeShareBtn').addEventListener('click', nativeShareResults);
+document.getElementById('twitterShareBtn').addEventListener('click', shareResultsToTwitter);
 document.getElementById('closeShareModalBtn').addEventListener('click', closeShareModal);
 document.getElementById('shareModal').addEventListener('click', (e)=>{ if(e.target.id === 'shareModal') closeShareModal(); });
 document.addEventListener('keydown', (e)=>{
