@@ -1325,3 +1325,50 @@
   margin-top:6px;
   min-height:9px;
 }
+
+
+/* v2.7.10 export polish fixes */
+.share-snapshot-sample .results-brand{
+  right: 10px;
+  gap: 5px;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.share-snapshot-sample .score-card .label{
+  font-family:'JetBrains Mono', monospace;
+  font-size:9px;
+  letter-spacing:0;
+  text-transform:none;
+}
+
+.share-snapshot-sample .winner-banner{
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+}
+
+.share-snapshot-sample .results-radar-panel h2,
+.share-snapshot-sample .results .paired-title-row th{
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  letter-spacing:0.03em;
+  text-transform:uppercase;
+}
+
+.share-snapshot-sample .results-radar-panel svg text{
+  font-family:'Oswald', sans-serif !important;
+}
+
+/* Pull radar labels tighter to the pentagon in the export card */
+.share-snapshot-sample .results-radar-panel svg text:nth-of-type(1){
+  transform: translateY(8px);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.share-snapshot-sample .results-radar-panel svg text:nth-of-type(3),
+.share-snapshot-sample .results-radar-panel svg text:nth-of-type(4){
+  transform: translateY(-10px);
+  transform-box: fill-box;
+  transform-origin: center;
+}
