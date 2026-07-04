@@ -2377,7 +2377,7 @@ function scheduleBotAutoFillPick(){
     if(G && G.auction && G.auction.autoFill && G.auction.turn === 'bot'){
       botAutoFillMove();
     }
-  }, 2000);
+  }, 1500);
 }
 
 function startAutoFillRound(side){
@@ -2676,8 +2676,10 @@ function buildRadarSVG(labels, userVals, botVals){
   const botPts = radarPoints(botVals,cx,cy,maxR);
   return `<svg viewBox="0 0 320 300" width="100%" style="max-width:380px; display:block; margin:0 auto;">
     ${grid}${axes}
-    <polygon points="${userPts}" fill="#C9862B" fill-opacity="0.35" stroke="#C9862B" stroke-width="2"/>
-    <polygon points="${botPts}" fill="#5B6B8C" fill-opacity="0.35" stroke="#7C93C9" stroke-width="2"/>
+    <polygon points="${userPts}" fill="#C9862B" fill-opacity="0.35" stroke="none"/>
+    <polygon points="${botPts}" fill="#5B6B8C" fill-opacity="0.35" stroke="none"/>
+    <polygon points="${botPts}" fill="none" stroke="#7C93C9" stroke-width="2"/>
+    <polygon points="${userPts}" fill="none" stroke="#C9862B" stroke-width="2"/>
   </svg>`;
 }
 
@@ -2874,7 +2876,7 @@ function render(){
   document.getElementById('resultsScreen').classList.add('hidden');
   const bottomNavBtn = document.getElementById('botExitBtn');
   if(bottomNavBtn){
-    bottomNavBtn.textContent = 'Exit';
+    bottomNavBtn.textContent = '← Exit';
     bottomNavBtn.classList.toggle('hidden', APP_MODE !== 'bot');
   }
 
@@ -3202,10 +3204,6 @@ function renderFriendState(){
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
   const bottomNavBtn = document.getElementById('botExitBtn');
-  if(bottomNavBtn){
-    bottomNavBtn.textContent = state.status === 'waiting' ? 'Back' : 'Exit';
-    bottomNavBtn.classList.toggle('hidden', state.status !== 'waiting');
-  }
 
   document.getElementById('youBudget').textContent = '$'+state.me.budget;
   document.getElementById('botBudget').textContent = '$'+state.opponent.budget;
@@ -3219,6 +3217,10 @@ function renderFriendState(){
     banner.removeAttribute('style');
   }
   const opponentConnected = state.connected && state.connected[state.opponent.side];
+  if(bottomNavBtn){
+    bottomNavBtn.textContent = '← Exit';
+    bottomNavBtn.classList.toggle('hidden', !(state.status === 'waiting' || !opponentConnected));
+  }
 
   const aArea = document.getElementById('auctionArea');
   if(state.status !== 'waiting' && !opponentConnected){
