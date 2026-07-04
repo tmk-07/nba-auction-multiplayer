@@ -2672,7 +2672,9 @@ function buildRadarSVG(labels, userVals, botVals){
   const axes = labels.map((lbl,i)=>{
     const angle=-Math.PI/2+i*(2*Math.PI/5);
     const x2=cx+maxR*Math.cos(angle), y2=cy+maxR*Math.sin(angle);
-    const lx=cx+(maxR+28)*Math.cos(angle), ly=cy+(maxR+28)*Math.sin(angle);
+    const labelR = (i === 1 || i === 4) ? maxR + 32 : maxR + 10;
+    const yOffset = (i === 2 || i === 3) ? 6 : 0;
+    const lx=cx+labelR*Math.cos(angle), ly=cy+labelR*Math.sin(angle)+yOffset;
     return `<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#33353F" stroke-width="1"/>
     <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9A9CA8" font-size="11" font-family="Oswald, sans-serif" text-anchor="middle" dominant-baseline="middle">${lbl}</text>`;
   }).join('');
@@ -3727,4 +3729,3 @@ document.addEventListener('keydown', (e)=>{
   if(e.key === 'Escape' && !document.getElementById('shareModal').classList.contains('hidden')) closeShareModal();
 });
 showLanding();
-

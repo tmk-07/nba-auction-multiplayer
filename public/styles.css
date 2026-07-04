@@ -1323,3 +1323,288 @@
   margin-top:6px;
   min-height:9px;
 }
+
+/* Final square PNG export layout. This is scoped to the export clone that
+   buildShareExportNode() places inside #shareExportSandbox. The live
+   #resultsScreen .results layout keeps the normal in-game structure. */
+.share-snapshot-sample{
+  padding:16px;
+  min-height:100vh;
+  justify-content:flex-start;
+}
+
+.share-snapshot-sample h1,
+.share-snapshot-sample #setupScreen,
+.share-snapshot-sample #gameScreen,
+.share-snapshot-sample .page-footer{
+  display:none !important;
+}
+
+.share-snapshot-sample .wrap{
+  width:560px;
+  max-width:560px;
+  margin:0 auto;
+  flex:0 0 auto;
+}
+
+.share-snapshot-sample #resultsScreen{
+  display:block !important;
+}
+
+.share-snapshot-sample .results{
+  position:relative;
+  width:560px;
+  height:560px;
+  padding:14px;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+.share-snapshot-sample .results-brand{
+  position:absolute;
+  top:14px;
+  right:14px;
+  display:flex;
+  align-items:center;
+  gap:6px;
+  font-family:'Oswald', sans-serif;
+  font-size:14px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:0.035em;
+  text-transform:uppercase;
+  color:var(--chalk);
+}
+
+.share-snapshot-sample .results-brand-logo{
+  width:22px;
+  height:22px;
+  display:block;
+}
+
+.share-snapshot-sample .results-summary-compact{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+  align-items:stretch;
+  margin:0;
+}
+
+.share-snapshot-sample .results-left-summary{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  align-items:stretch;
+}
+
+.share-snapshot-sample .winner-banner{
+  grid-column:1 / -1;
+  max-width:340px;
+  min-height:24px;
+  margin:0;
+  padding-right:0;
+  font-size:22px;
+  line-height:1.05;
+}
+
+.share-snapshot-sample .results-rating-stack{
+  grid-column:1 / -1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+}
+
+.share-snapshot-sample .score-card{
+  padding:8px 10px;
+  min-height:58px;
+}
+
+.share-snapshot-sample .score-card .label{
+  font-size:9px;
+}
+
+.share-snapshot-sample .score-card .value{
+  font-size:23px;
+  line-height:1.02;
+}
+
+.share-snapshot-sample .results-radar-panel{
+  position:relative;
+  display:grid;
+  grid-template-columns:1fr;
+  grid-template-rows:auto auto;
+  align-items:start;
+  justify-items:center;
+  min-height:0;
+  padding-top:0;
+}
+
+.share-snapshot-sample .results-radar-panel h2{
+  position:absolute;
+  left:0;
+  top:18px;
+  z-index:2;
+  width:auto;
+  max-width:none;
+  margin:0;
+  color:var(--chalk) !important;
+  text-align:left;
+  line-height:1.02;
+  white-space:nowrap;
+}
+
+.share-snapshot-sample .results-radar-panel svg{
+  grid-column:1;
+  grid-row:1;
+  width:286px !important;
+  max-width:286px !important;
+  margin:-8px auto -40px !important;
+  justify-self:center;
+}
+
+.share-snapshot-sample .results-radar-legend{
+  grid-column:1;
+  grid-row:2;
+  width:286px;
+  margin-top:0 !important;
+  text-align:center;
+  font-size:11px;
+  color:var(--chalk-dim);
+}
+
+.share-snapshot-sample .results .paired-rosters{
+  margin-top:7px;
+  overflow-x:visible;
+}
+
+.share-snapshot-sample .results .paired-roster-table{
+  min-width:0;
+  table-layout:fixed;
+  margin-top:7px;
+  font-size:10.5px;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-paid-col{
+  width:15%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-player-col{
+  width:34%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-slot-col{
+  width:2%;
+}
+
+.share-snapshot-sample .results .paired-roster-table th,
+.share-snapshot-sample .results .paired-roster-table td{
+  padding:4px 3px;
+  overflow-wrap:normal;
+  word-break:normal;
+  white-space:nowrap;
+}
+
+.share-snapshot-sample .results .paired-title-row th{
+  padding-top:5px;
+  padding-bottom:7px;
+  font-size:16px;
+}
+
+.share-snapshot-sample .results .paired-player{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.share-snapshot-sample .results .paired-left-player{
+  padding-right:10px;
+}
+
+.share-snapshot-sample .results .paired-right-player{
+  padding-left:10px;
+}
+
+.share-snapshot-sample .results .paid-align{
+  display:inline-grid;
+  align-items:baseline;
+  width:100%;
+  column-gap:3px;
+}
+
+.share-snapshot-sample .results .paid-align-left{
+  grid-template-columns:28px 38px;
+  justify-content:start;
+  text-align:left;
+}
+
+.share-snapshot-sample .results .paid-align-right{
+  grid-template-columns:38px 28px;
+  justify-content:end;
+  text-align:right;
+}
+
+.share-snapshot-sample .results .paired-tag-slot,
+.share-snapshot-sample .results .steal,
+.share-snapshot-sample .results .overpay{
+  font-size:8.5px;
+}
+
+.share-snapshot-sample .results .paired-price-slot,
+.share-snapshot-sample .results .paired-tag-slot{
+  transform:none;
+}
+
+.share-snapshot-sample .results-url{
+  margin-top:8px;
+  align-self:flex-end;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  line-height:1;
+  color:var(--chalk-dim);
+  opacity:0.9;
+}
+
+.share-snapshot-sample .results .restart-btn,
+.share-snapshot-sample .results-actions,
+.share-snapshot-sample .rematch-status{
+  display:none !important;
+}
+
+
+/* v2.7.12 share-card branding pass using uploaded logo */
+.share-snapshot-sample .results{
+  padding-top:56px;
+}
+
+.share-snapshot-sample .results-brand{
+  position:absolute;
+  top:18px;
+  right:18px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-family:'Oswald', sans-serif;
+  font-weight:700;
+  font-size:15px;
+  letter-spacing:0.02em;
+  color:var(--chalk);
+  white-space:nowrap;
+  line-height:1;
+  z-index:4;
+}
+
+.share-snapshot-sample .results-brand-logo{
+  width:28px;
+  height:28px;
+  object-fit:contain;
+  display:block;
+  flex:0 0 auto;
+}
+
+.share-snapshot-sample .results-url{
+  margin-top:10px;
+  text-align:center;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  color:var(--chalk-dim);
+}
