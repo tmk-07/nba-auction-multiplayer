@@ -3572,7 +3572,7 @@ function restart(){
 
 function shareCardMarkup(data){
   return `
-    <div class="results share-export-card">
+    <div class="results">
       <div class="results-brand">
         <img class="results-brand-logo" src="logo.png" alt="Starting Five logo">
         <span>Starting Five</span>
@@ -3628,9 +3628,20 @@ function closeShareModal(){
 
 function buildShareExportNode(){
   if(!LAST_SHARE_RESULT) throw new Error('No results are available to share yet.');
-  const wrapper = document.createElement('div');
-  wrapper.innerHTML = shareCardMarkup(LAST_SHARE_RESULT).trim();
-  return wrapper.firstElementChild;
+
+  const previewBody = document.createElement('div');
+  previewBody.className = 'share-snapshot-sample';
+
+  const previewWrap = document.createElement('div');
+  previewWrap.className = 'wrap';
+
+  const previewResultsScreen = document.createElement('div');
+  previewResultsScreen.id = 'resultsScreen';
+  previewResultsScreen.innerHTML = shareCardMarkup(LAST_SHARE_RESULT).trim();
+
+  previewWrap.appendChild(previewResultsScreen);
+  previewBody.appendChild(previewWrap);
+  return previewBody;
 }
 
 function shareFileName(){
@@ -3655,13 +3666,14 @@ async function downloadResultsPng(){
     if(sandbox) sandbox.innerHTML = '';
     const exportNode = buildShareExportNode();
     if(sandbox) sandbox.appendChild(exportNode);
+    const captureNode = exportNode.querySelector('.results') || exportNode;
 
     if(document.fonts && document.fonts.ready){
       await document.fonts.ready;
     }
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
-    const dataUrl = await window.htmlToImage.toPng(exportNode, {
+    const dataUrl = await window.htmlToImage.toPng(captureNode, {
       cacheBust: true,
       pixelRatio: 2,
       backgroundColor: '#1C1E26'

@@ -850,53 +850,291 @@
   background:transparent;
 }
 
-.share-export-card.results{
+
+/* Share snapshot sample: compact Draft-B-like result card */
+.share-snapshot-sample{
+  padding:16px;
+  min-height:100vh;
+  justify-content:flex-start;
+}
+
+.share-snapshot-sample h1,
+.share-snapshot-sample #setupScreen,
+.share-snapshot-sample #gameScreen,
+.share-snapshot-sample .page-footer{
+  display:none !important;
+}
+
+.share-snapshot-sample .wrap{
+  width:720px;
+  max-width:720px;
+  margin:0 auto;
+  flex:0 0 auto;
+}
+
+.share-snapshot-sample #resultsScreen{
+  display:block !important;
+}
+
+.share-snapshot-sample .results{
   position:relative;
-  width:560px !important;
-  max-width:none !important;
-  height:560px;
+  padding:14px 16px 16px;
   min-height:0;
+  overflow:hidden;
+}
+
+.results-brand{
+  position:absolute;
+  top:14px;
+  right:16px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-family:'Oswald', sans-serif;
+  font-size:15px;
+  font-weight:700;
+  line-height:1;
+  letter-spacing:0.04em;
+  text-transform:uppercase;
+  color:var(--chalk);
+  white-space:nowrap;
+}
+
+.results-brand-logo{
+  width:24px;
+  height:24px;
+  display:block;
+}
+
+.share-snapshot-sample .winner-banner{
+  font-size:24px;
+  line-height:1.05;
+  margin:0 0 8px;
+}
+
+.share-snapshot-sample .results-summary-compact{
+  display:grid;
+  grid-template-columns:245px minmax(0, 1fr);
+  gap:12px;
+  align-items:start;
+  margin:0 0 8px;
+}
+
+.share-snapshot-sample .results-left-summary{
+  min-width:0;
+}
+
+.share-snapshot-sample .results-rating-stack{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.share-snapshot-sample .score-card{
+  padding:9px 13px;
+  min-height:62px;
+}
+
+.share-snapshot-sample .score-card .label{
+  font-size:10px;
+}
+
+.share-snapshot-sample .score-card .value{
+  font-size:25px;
+  margin-top:2px;
+  line-height:1.05;
+}
+
+.share-snapshot-sample .results-radar-panel{
+  min-width:0;
+  display:grid;
+  grid-template-columns:1fr;
+  justify-items:center;
+  padding-top:28px;
+}
+
+.share-snapshot-sample .results-radar-panel h2{
+  justify-self:end;
+  margin:0 0 -8px;
+  padding:0;
+  line-height:1;
+}
+
+.share-snapshot-sample .results-radar-panel svg{
+  width:275px !important;
+  max-width:275px !important;
+  margin:-2px auto -36px !important;
+}
+
+.share-snapshot-sample .results-radar-legend{
+  width:275px;
+  text-align:center;
+  font-size:12px;
+  color:var(--chalk-dim);
+  margin-top:0 !important;
+  line-height:1.05;
+}
+
+.share-snapshot-sample .results .paired-rosters{
+  margin-top:8px;
+  overflow-x:visible;
+}
+
+.share-snapshot-sample .results .paired-roster-table{
+  min-width:0;
+  table-layout:fixed;
+  font-size:12px;
+  margin-top:8px;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-paid-col{
+  width:14%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-player-col{
+  width:35%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-slot-col{
+  width:2%;
+}
+
+.share-snapshot-sample .results .paired-roster-table th,
+.share-snapshot-sample .results .paired-roster-table td{
+  padding:5px 6px;
+  overflow-wrap:normal;
+  word-break:normal;
+  white-space:nowrap;
+}
+
+.share-snapshot-sample .results .paired-title-row th{
+  padding-top:7px;
+  padding-bottom:8px;
+  font-size:18px;
+}
+
+.share-snapshot-sample .results .paired-player{
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.share-snapshot-sample .results .paired-left-player{
+  padding-right:12px;
+}
+
+.share-snapshot-sample .results .paired-right-player{
+  padding-left:12px;
+}
+
+.share-snapshot-sample .results .paid-align{
+  display:inline-grid;
+  align-items:baseline;
+  width:100%;
+  column-gap:4px;
+}
+
+.share-snapshot-sample .results .paid-align-left{
+  grid-template-columns:34px 44px;
+  justify-content:start;
+  text-align:left;
+}
+
+.share-snapshot-sample .results .paid-align-right{
+  grid-template-columns:44px 34px;
+  justify-content:end;
+  text-align:right;
+}
+
+.share-snapshot-sample .results .paired-price-slot,
+.share-snapshot-sample .results .paired-tag-slot{
+  transform:none;
+}
+
+.share-snapshot-sample .results .paired-price-slot{
+  font-variant-numeric:tabular-nums;
+}
+
+.share-snapshot-sample .results .paid-align-left .paired-price-slot{
+  text-align:left;
+}
+
+.share-snapshot-sample .results .paid-align-left .paired-tag-slot{
+  text-align:left;
+}
+
+.share-snapshot-sample .results .paid-align-right .paired-tag-slot{
+  text-align:right;
+}
+
+.share-snapshot-sample .results .paid-align-right .paired-price-slot{
+  text-align:right;
+}
+
+.share-snapshot-sample .results .restart-btn,
+.share-snapshot-sample .results-actions,
+.share-snapshot-sample .rematch-status{
+  display:none !important;
+}
+
+@media (max-width:760px){
+  .share-snapshot-sample{
+    padding:10px;
+  }
+  .share-snapshot-sample .wrap{
+    width:100%;
+    max-width:720px;
+  }
+}
+
+
+/* Draft C square sample: stacked share card */
+.share-snapshot-sample{
+  padding:16px;
+}
+
+.share-snapshot-sample .wrap{
+  width:560px;
+  max-width:560px;
+}
+
+.share-snapshot-sample .results{
+  width:560px;
+  height:560px;
   padding:14px;
   display:flex;
   flex-direction:column;
   overflow:hidden;
-  box-shadow:none;
-  background:var(--panel-bg);
 }
-.share-export-card .results-brand{
-  position:absolute;
+
+.share-snapshot-sample .results-brand{
   top:14px;
   right:14px;
-  display:flex;
-  align-items:center;
   gap:6px;
-  font-family:'Oswald', sans-serif;
   font-size:14px;
-  font-weight:700;
-  line-height:1;
   letter-spacing:0.035em;
-  text-transform:uppercase;
-  color:var(--chalk);
 }
-.share-export-card .results-brand-logo{
+
+.share-snapshot-sample .results-brand-logo{
   width:22px;
   height:22px;
-  display:block;
 }
-.share-export-card .results-summary-compact{
+
+.share-snapshot-sample .results-summary-compact{
   display:flex;
   flex-direction:column;
   gap:7px;
   align-items:stretch;
   margin:0;
 }
-.share-export-card .results-left-summary{
+
+.share-snapshot-sample .results-left-summary{
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:7px;
   align-items:stretch;
 }
-.share-export-card .winner-banner{
+
+.share-snapshot-sample .winner-banner{
   grid-column:1 / -1;
   max-width:340px;
   min-height:24px;
@@ -905,24 +1143,29 @@
   font-size:22px;
   line-height:1.05;
 }
-.share-export-card .results-rating-stack{
+
+.share-snapshot-sample .results-rating-stack{
   grid-column:1 / -1;
   display:grid;
   grid-template-columns:1fr 1fr;
   gap:8px;
 }
-.share-export-card .score-card{
+
+.share-snapshot-sample .score-card{
   padding:8px 10px;
   min-height:58px;
 }
-.share-export-card .score-card .label{
+
+.share-snapshot-sample .score-card .label{
   font-size:9px;
 }
-.share-export-card .score-card .value{
+
+.share-snapshot-sample .score-card .value{
   font-size:23px;
   line-height:1.02;
 }
-.share-export-card .results-radar-panel{
+
+.share-snapshot-sample .results-radar-panel{
   position:relative;
   display:grid;
   grid-template-columns:1fr;
@@ -932,7 +1175,8 @@
   min-height:0;
   padding-top:0;
 }
-.share-export-card .results-radar-panel h2{
+
+.share-snapshot-sample .results-radar-panel h2{
   position:absolute;
   left:0;
   top:18px;
@@ -945,7 +1189,8 @@
   line-height:1.02;
   white-space:nowrap;
 }
-.share-export-card .results-radar-panel svg{
+
+.share-snapshot-sample .results-radar-panel svg{
   grid-column:1;
   grid-row:1;
   width:286px !important;
@@ -953,88 +1198,114 @@
   margin:-8px auto -40px !important;
   justify-self:center;
 }
-.share-export-card .results-radar-legend{
+
+.share-snapshot-sample .results-radar-legend{
   grid-column:1;
   grid-row:2;
   width:286px;
   margin-top:0 !important;
   text-align:center;
   font-size:11px;
-  color:var(--chalk-dim);
 }
-.share-export-card .paired-rosters{
+
+.share-snapshot-sample .results .paired-rosters{
   margin-top:7px;
   overflow-x:visible;
 }
-.share-export-card .paired-roster-table{
-  width:100%;
+
+.share-snapshot-sample .results .paired-roster-table{
   min-width:0;
   table-layout:fixed;
   margin-top:7px;
   font-size:10.5px;
 }
-.share-export-card .paired-roster-table .paired-paid-col{width:15%;}
-.share-export-card .paired-roster-table .paired-player-col{width:34%;}
-.share-export-card .paired-roster-table .paired-slot-col{width:2%;}
-.share-export-card .paired-roster-table th,
-.share-export-card .paired-roster-table td{
+
+.share-snapshot-sample .results .paired-roster-table .paired-paid-col{
+  width:15%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-player-col{
+  width:34%;
+}
+
+.share-snapshot-sample .results .paired-roster-table .paired-slot-col{
+  width:2%;
+}
+
+.share-snapshot-sample .results .paired-roster-table th,
+.share-snapshot-sample .results .paired-roster-table td{
   padding:4px 3px;
   overflow-wrap:normal;
   word-break:normal;
   white-space:nowrap;
 }
-.share-export-card .paired-title-row th{
+
+.share-snapshot-sample .results .paired-title-row th{
   padding-top:5px;
   padding-bottom:7px;
   font-size:16px;
 }
-.share-export-card .paired-player{
+
+.share-snapshot-sample .results .paired-player{
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.share-export-card .paired-left-player{padding-right:10px;}
-.share-export-card .paired-right-player{padding-left:10px;}
-.share-export-card .paid-align{
+
+.share-snapshot-sample .results .paired-left-player{
+  padding-right:10px;
+}
+
+.share-snapshot-sample .results .paired-right-player{
+  padding-left:10px;
+}
+
+.share-snapshot-sample .results .paid-align{
   display:inline-grid;
   align-items:baseline;
   width:100%;
   column-gap:3px;
 }
-.share-export-card .paid-align-left{
-  grid-template-columns:32px 42px;
+
+.share-snapshot-sample .results .paid-align-left{
+  grid-template-columns:28px 38px;
   justify-content:start;
   text-align:left;
 }
-.share-export-card .paid-align-right{
-  grid-template-columns:42px 32px;
+
+.share-snapshot-sample .results .paid-align-right{
+  grid-template-columns:38px 28px;
   justify-content:end;
   text-align:right;
 }
-.share-export-card .paired-tag-slot,
-.share-export-card .steal,
-.share-export-card .overpay{
-  font-size:10px;
-}
-.share-export-card .paired-price-slot,
-.share-export-card .paired-tag-slot{
-  transform:none;
-}
-.share-export-card .results-url{
-  margin-top:auto;
-  padding-top:6px;
-  text-align:center;
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px;
-  color:var(--chalk-dim);
-  letter-spacing:0.02em;
-}
-.share-export-card .restart-btn,
-.share-export-card .results-actions,
-.share-export-card .rematch-status,
-.share-export-card .share-results-btn{
-  display:none !important;
+
+.share-snapshot-sample .results .paired-tag-slot,
+.share-snapshot-sample .results .steal,
+.share-snapshot-sample .results .overpay{
+  font-size:8.5px;
 }
 
+.share-snapshot-sample .results .paired-price-slot,
+.share-snapshot-sample .results .paired-tag-slot{
+  transform:none;
+}
+
+.share-snapshot-sample .results-url{
+  margin-top:8px;
+  align-self:flex-end;
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  line-height:1;
+  color:var(--chalk-dim);
+  opacity:0.9;
+}
+
+@media (max-width:600px){
+  .share-snapshot-sample .wrap,
+  .share-snapshot-sample .results{
+    width:560px;
+    max-width:560px;
+  }
+}
 
 /* v2.7.8 share/result spacing polish */
 .results-actions{
@@ -1053,33 +1324,4 @@
 .share-modal-status{
   margin-top:6px;
   min-height:9px;
-}
-
-/* v2.7.8 exact Codex share-card export overrides */
-.share-export-card .paid-align-left{
-  grid-template-columns:28px 38px;
-  justify-content:start;
-  text-align:left;
-}
-.share-export-card .paid-align-right{
-  grid-template-columns:38px 28px;
-  justify-content:end;
-  text-align:right;
-}
-.share-export-card .paired-tag-slot,
-.share-export-card .steal,
-.share-export-card .overpay{
-  font-size:8.5px;
-}
-.share-export-card .results-url{
-  margin-top:8px;
-  align-self:flex-end;
-  padding-top:0;
-  text-align:left;
-  font-family:'JetBrains Mono', monospace;
-  font-size:10px;
-  line-height:1;
-  color:var(--chalk-dim);
-  opacity:0.9;
-  letter-spacing:normal;
 }
