@@ -2237,6 +2237,9 @@ function posNeedStr(side){
 function newGame(){
   APP_MODE = 'bot';
   disconnectFriend();
+  leaveActivePresence();
+  stopActivePlayerPolling();
+  stopActivePresence();
   setGameLabels('Bot');
   const {profile, order} = buildPool();
   const persona = pick(BOT_PERSONAS);
@@ -3004,6 +3007,17 @@ let APP_MODE = 'home';
 let FRIEND_WS = null;
 let FRIEND_STATE = null;
 let ACTIVE_COUNT_TIMER = null;
+let ACTIVE_PRESENCE_TIMER = null;
+let FRIEND_MATCH_TYPE = 'friend';
+const ACTIVE_SESSION_ID = (()=>{
+  const key = 'STARTING_FIVE_ACTIVE_SESSION_ID';
+  let id = localStorage.getItem(key);
+  if(!id){
+    id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+    localStorage.setItem(key, id);
+  }
+  return id;
+})();
 
 // When the frontend is served by the same Cloudflare Worker as the multiplayer API,
 // leave this blank. If you keep the static site on Pages and deploy the Worker
@@ -3079,6 +3093,8 @@ function showLanding(){
   document.getElementById('resultsScreen').classList.add('hidden');
   document.getElementById('roomCodeDisplay').classList.add('hidden');
   stopActivePlayerPolling();
+  leaveActivePresence();
+  stopActivePresence();
   setFriendStatus('');
 }
 
@@ -3098,6 +3114,10 @@ function stopActivePlayerPolling(){
   }
 }
 
+function activeStatusPath(mode='online-setup'){
+  return `/api/match/status?session=${encodeURIComponent(ACTIVE_SESSION_ID)}&mode=${encodeURIComponent(mode)}`;
+}
+
 function setActivePlayerCount(count){
   const el = document.getElementById('activePlayerCount');
   if(!el) return;
@@ -3105,24 +3125,56 @@ function setActivePlayerCount(count){
   else el.textContent = 'Active players: —';
 }
 
+async function touchActivePresence(mode='online-setup', showCount=false){
+  try{
+    const res = await fetch(apiUrl(activeStatusPath(mode)));
+    if(!res.ok) throw new Error('status failed');
+    const data = await res.json();
+    if(showCount) setActivePlayerCount(Number(data.activePlayers || 0));
+    return data;
+  }catch(err){
+    if(showCount) setActivePlayerCount(null);
+    return null;
+  }
+}
+
+async function leaveActivePresence(){
+  try{
+    await fetch(apiUrl(`/api/match/leave?session=${encodeURIComponent(ACTIVE_SESSION_ID)}`), {method:'POST', keepalive:true});
+  }catch(err){}
+}
+
+function stopActivePresence(){
+  if(ACTIVE_PRESENCE_TIMER){
+    clearInterval(ACTIVE_PRESENCE_TIMER);
+    ACTIVE_PRESENCE_TIMER = null;
+  }
+}
+
+function startActivePresence(mode='online-game'){
+  stopActivePresence();
+  touchActivePresence(mode, false);
+  ACTIVE_PRESENCE_TIMER = setInterval(()=>touchActivePresence(mode, false), 10000);
+}
+
 async function updateActivePlayerCount(){
   const el = document.getElementById('activePlayerCount');
   if(!el || APP_MODE !== 'friend-setup') return;
-  try{
-    const res = await fetch(apiUrl('/api/match/status'));
-    if(!res.ok) throw new Error('status failed');
-    const data = await res.json();
-    setActivePlayerCount(Number(data.activePlayers || 0));
-  }catch(err){
-    setActivePlayerCount(null);
-  }
+  await touchActivePresence('online-setup', true);
 }
 
 function startActivePlayerPolling(){
   stopActivePlayerPolling();
+  stopActivePresence();
   updateActivePlayerCount();
   ACTIVE_COUNT_TIMER = setInterval(updateActivePlayerCount, 5000);
 }
+
+window.addEventListener('beforeunload', ()=>{
+  try{
+    navigator.sendBeacon(apiUrl(`/api/match/leave?session=${encodeURIComponent(ACTIVE_SESSION_ID)}`));
+  }catch(e){}
+});
 
 function disconnectFriend(){
   if(FRIEND_WS){
@@ -3190,9 +3242,9 @@ async function joinFriendRoom(){
 async function findOnlineOpponent(){
   const btn = document.getElementById('findOpponentBtn');
   if(btn) btn.disabled = true;
-  setFriendStatus('Finding opponent...');
+  setFriendStatus('Finding an opponent...');
   try{
-    const res = await fetch(apiUrl('/api/match/find'), {
+    const res = await fetch(apiUrl(`/api/match/find?session=${encodeURIComponent(ACTIVE_SESSION_ID)}&mode=online-match`), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({name:getPlayerName()})
@@ -3203,11 +3255,11 @@ async function findOnlineOpponent(){
     const codeEl = document.getElementById('roomCodeDisplay');
     if(codeEl){
       codeEl.textContent = data.code || '';
-      codeEl.classList.toggle('hidden', !data.code || !data.waiting);
+      codeEl.classList.add('hidden');
     }
     if(!data.code || !data.side) throw new Error('No match returned');
-    setFriendStatus(data.side === 'host' ? 'Looking for opponent...' : 'Opponent found. Joining game...');
-    connectFriendRoom(data.code, data.side);
+    setFriendStatus(data.side === 'host' ? 'Finding an opponent...' : 'Opponent found. Joining game...');
+    connectFriendRoom(data.code, data.side, 'online');
   }catch(err){
     setFriendStatus(`Could not find opponent. ${err.message || err}`, true);
     if(btn) btn.disabled = false;
@@ -3215,17 +3267,19 @@ async function findOnlineOpponent(){
   }
 }
 
-function connectFriendRoom(code, side){
+function connectFriendRoom(code, side, matchType='friend'){
   const name = getPlayerName();
+  FRIEND_MATCH_TYPE = matchType;
   disconnectFriend();
   stopActivePlayerPolling();
+  startActivePresence(matchType === 'online' ? 'online-game' : 'friend-game');
   APP_MODE = 'friend';
   setGameLabels('Opponent');
-  setFriendStatus(side==='host' ? `Room ${code} created. Waiting for friend...` : `Joining room ${code}...`);
+  setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent...' : `Room ${code} created. Waiting for friend...`) : `Joining room ${code}...`);
   const nameParam = name ? `&name=${encodeURIComponent(name)}` : '';
   const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}${nameParam}`));
   FRIEND_WS = ws;
-  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? `Room ${code}. Send this code to your friend.` : `Connected to room ${code}.`));
+  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent...' : `Room ${code}. Send this code to your friend.`) : `Connected to room ${code}.`));
   ws.addEventListener('message', (event)=>{
     let msg;
     try{ msg = JSON.parse(event.data); }catch(e){ return; }
@@ -3332,7 +3386,10 @@ function renderFriendState(){
       <div style="color:var(--chalk-dim);">The game is paused until your friend reconnects with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
     </div>`;
   } else if(state.status === 'waiting'){
-    aArea.innerHTML = `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
+    const isOnlineMatch = state.matchType === 'online' || FRIEND_MATCH_TYPE === 'online';
+    aArea.innerHTML = isOnlineMatch
+      ? `<div class="auction-panel" style="text-align:center;"><div class="waiting">Finding an opponent...</div></div>`
+      : `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
   } else if(state.auction && state.auction.autoFill){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;

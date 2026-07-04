@@ -2119,10 +2119,10 @@ function buildResults(game){
   return {winner, scores, axes:{host:teamAxes(game,'host',maxes), guest:teamAxes(game,'guest',maxes)}, rows:{host:rows('host'), guest:rows('guest')}};
 }
 
-function newRoomGame(code){
+function newRoomGame(code, options={}){
   const {profile, order} = buildPool();
   return {
-    code, profileName: profile.name, status:'waiting', guestJoined:false, order,
+    code, matchType: options.matchType || 'friend', profileName: profile.name, status:'waiting', guestJoined:false, order,
     budgets:{host:20, guest:20},
     slots:{host:5, guest:5},
     posSlots:{host:{G:2,F:2,C:1}, guest:{G:2,F:2,C:1}},
@@ -2346,7 +2346,7 @@ function stateForClient(game, side, connected){
   const currentPlayer = game.auction ? game.order.find(p=>p.id===game.auction.playerId) : null;
   const names = game.names || {host:'', guest:''};
   return {
-    type:'state', roomCode: game.code, side, status: game.status, over: game.over, connected,
+    type:'state', roomCode: game.code, matchType: game.matchType || 'friend', side, status: game.status, over: game.over, connected,
     draftedCount: game.rosters.host.length + game.rosters.guest.length, orderLength: game.order.length,
     hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
     names,
@@ -2387,11 +2387,13 @@ export class AuctionRoom {
   async fetch(request){
     await this.load();
     const url = new URL(request.url);
-    if(request.method === 'GET' && url.pathname.endsWith('/match/status')) return this.matchStatus();
+    if(request.method === 'GET' && url.pathname.endsWith('/match/status')) return this.matchStatus(request);
+    if(request.method === 'POST' && url.pathname.endsWith('/match/leave')) return this.clearPresence(url);
     if(request.method === 'POST' && url.pathname.endsWith('/match/find')) return this.matchFind(request);
     if(request.method === 'POST' && url.pathname.endsWith('/init')){
       const code = url.searchParams.get('code') || makeCode();
-      if(!this.game){ this.game = newRoomGame(code); await this.save(); }
+      const matchType = url.searchParams.get('matchType') === 'online' ? 'online' : 'friend';
+      if(!this.game){ this.game = newRoomGame(code, {matchType}); await this.save(); }
       return new Response(JSON.stringify({ok:true, code:this.game.code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
     }
     if(request.method === 'GET' && url.pathname.endsWith('/status')){
@@ -2404,6 +2406,7 @@ export class AuctionRoom {
         exists:true,
         full,
         status:this.game.status,
+        matchType:this.game.matchType || 'friend',
         over:!!this.game.over,
         connected,
       }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
@@ -2411,48 +2414,110 @@ export class AuctionRoom {
     if(request.headers.get('Upgrade') === 'websocket') return this.handleWebSocket(request);
     return new Response('Not found', {status:404, headers:CORS_HEADERS});
   }
-  async matchStatus(){
+  async prunePresence(now=Date.now()){
+    const presence = (await this.state.storage.get('activePresence')) || {};
+    let changed = false;
+    for(const [id, info] of Object.entries(presence)){
+      if(!info || !info.lastSeen || now - info.lastSeen > 30000){
+        delete presence[id];
+        changed = true;
+      }
+    }
+    if(changed) await this.state.storage.put('activePresence', presence);
+    return presence;
+  }
+
+  async touchPresence(url){
+    const now = Date.now();
+    const session = (url.searchParams.get('session') || '').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
+    const mode = (url.searchParams.get('mode') || 'online').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,40);
+    const presence = await this.prunePresence(now);
+    if(session){
+      presence[session] = {lastSeen:now, mode};
+      await this.state.storage.put('activePresence', presence);
+    }
+    return presence;
+  }
+
+  async clearPresence(url){
+    const session = (url.searchParams.get('session') || '').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
+    if(session){
+      const presence = (await this.state.storage.get('activePresence')) || {};
+      if(presence[session]){
+        delete presence[session];
+        await this.state.storage.put('activePresence', presence);
+      }
+    }
+    const active = await this.prunePresence();
+    return new Response(JSON.stringify({ok:true, activePlayers:Object.keys(active).length}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+  }
+
+  async matchStatus(request){
+    const url = new URL(request.url);
     const now = Date.now();
     let waiting = await this.state.storage.get('matchWaiting');
     if(waiting && now - waiting.createdAt > 90000){
       await this.state.storage.delete('matchWaiting');
       waiting = null;
     }
+    const presence = await this.touchPresence(url);
     return new Response(JSON.stringify({
-      activePlayers: waiting ? 1 : 0,
+      activePlayers: Object.keys(presence).length,
       waiting: !!waiting
     }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
+  }
+
+  async waitingRoomCanAcceptGuest(waiting){
+    try{
+      const code = waiting && waiting.code;
+      if(!code) return false;
+      const waitingId = this.env.AUCTION_ROOMS.idFromName(code);
+      const waitingStub = this.env.AUCTION_ROOMS.get(waitingId);
+      const statusRes = await waitingStub.fetch('https://room/status', {method:'GET'});
+      if(!statusRes.ok) return false;
+      const statusData = await statusRes.json();
+      const hostConnected = !!(statusData.connected && statusData.connected.host);
+      const withinConnectGrace = Date.now() - (waiting.createdAt || 0) < 10000;
+      return !!(statusData.exists && !statusData.over && statusData.status === 'waiting' && !statusData.full && (hostConnected || withinConnectGrace));
+    }catch(e){
+      return false;
+    }
   }
 
   async matchFind(request){
     let payload = {};
     try{ payload = await request.json(); }catch(e){}
     const now = Date.now();
+    const url = new URL(request.url);
+    const session = (url.searchParams.get('session') || '').replace(/[^a-zA-Z0-9_-]/g,'').slice(0,80);
+    const presence = await this.touchPresence(url);
     let waiting = await this.state.storage.get('matchWaiting');
     if(waiting && now - waiting.createdAt > 90000){
       await this.state.storage.delete('matchWaiting');
       waiting = null;
     }
 
+    // Keep one single waiting match room. If it exists and can accept a guest,
+    // pair the next player into that room even if the first player's WebSocket
+    // has not connected yet. This prevents two people from waiting in separate rooms.
     if(waiting && waiting.code){
-      const waitingId = this.env.AUCTION_ROOMS.idFromName(waiting.code);
-      const waitingStub = this.env.AUCTION_ROOMS.get(waitingId);
-      let canPair = true;
-      try{
-        const statusRes = await waitingStub.fetch('https://room/status', {method:'GET'});
-        const statusData = await statusRes.json();
-        canPair = !!(statusData.exists && statusData.connected && statusData.connected.host && !statusData.over);
-      }catch(e){
-        canPair = false;
+      if(waiting.session && session && waiting.session === session){
+        return new Response(JSON.stringify({
+          code: waiting.code,
+          side: 'host',
+          waiting: true,
+          activePlayers: Object.keys(presence).length
+        }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
       }
 
+      const canPair = await this.waitingRoomCanAcceptGuest(waiting);
       if(canPair){
         await this.state.storage.delete('matchWaiting');
         return new Response(JSON.stringify({
           code: waiting.code,
           side: 'guest',
           waiting: false,
-          activePlayers: 2
+          activePlayers: Object.keys(presence).length
         }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
       }
 
@@ -2463,17 +2528,17 @@ export class AuctionRoom {
     const code = makeCode();
     const id = this.env.AUCTION_ROOMS.idFromName(code);
     const stub = this.env.AUCTION_ROOMS.get(id);
-    const initRes = await stub.fetch(`https://room/init?code=${code}`, {method:'POST'});
+    const initRes = await stub.fetch(`https://room/init?code=${code}&matchType=online`, {method:'POST'});
     if(!initRes.ok){
       return new Response('Could not create match room', {status:500, headers:CORS_HEADERS});
     }
 
-    await this.state.storage.put('matchWaiting', {code, createdAt:now});
+    await this.state.storage.put('matchWaiting', {code, createdAt:now, session});
     return new Response(JSON.stringify({
       code,
       side: 'host',
       waiting: true,
-      activePlayers: 1
+      activePlayers: Object.keys(presence).length
     }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
   }
 
@@ -2539,7 +2604,8 @@ export class AuctionRoom {
     if(this.game.rematch.host && this.game.rematch.guest){
       const code = this.game.code;
       const previousNames = this.game.names || {host:'', guest:''};
-      const freshGame = newRoomGame(code);
+      const previousMatchType = this.game.matchType || 'friend';
+      const freshGame = newRoomGame(code, {matchType: previousMatchType});
       freshGame.names = previousNames;
       freshGame.status = 'active';
       freshGame.guestJoined = true;
@@ -2638,12 +2704,16 @@ export default {
     if(request.method === 'OPTIONS') return new Response(null, {headers:CORS_HEADERS});
     if(url.pathname === '/api/match/status' && request.method === 'GET'){
       const id = env.AUCTION_ROOMS.idFromName('__MATCHMAKER__');
-      return env.AUCTION_ROOMS.get(id).fetch('https://match/match/status', {method:'GET'});
+      return env.AUCTION_ROOMS.get(id).fetch(`https://match/match/status${url.search}`, {method:'GET'});
+    }
+    if(url.pathname === '/api/match/leave' && request.method === 'POST'){
+      const id = env.AUCTION_ROOMS.idFromName('__MATCHMAKER__');
+      return env.AUCTION_ROOMS.get(id).fetch(`https://match/match/leave${url.search}`, {method:'POST'});
     }
     if(url.pathname === '/api/match/find' && request.method === 'POST'){
       const body = await request.text();
       const id = env.AUCTION_ROOMS.idFromName('__MATCHMAKER__');
-      return env.AUCTION_ROOMS.get(id).fetch('https://match/match/find', {
+      return env.AUCTION_ROOMS.get(id).fetch(`https://match/match/find${url.search}`, {
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body

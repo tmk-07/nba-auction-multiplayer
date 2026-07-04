@@ -555,3 +555,37 @@
   color:var(--chalk-dim);
   opacity:0.75;
 }
+
+
+/* v2.7.0 online card height + active count alignment */
+.online-options-grid{
+  align-items:start;
+}
+.online-column{
+  display:flex;
+  flex-direction:column;
+}
+.online-option-card{
+  height:184px;
+  min-height:184px;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+}
+.online-option-card .input-row{
+  margin-top:auto;
+}
+.online-option-card #findOpponentBtn{
+  margin-top:auto;
+}
+.active-player-count{
+  margin-top:8px;
+  margin-bottom:0;
+  line-height:1.2;
+}
+@media (max-width:700px){
+  .online-option-card{
+    height:auto;
+    min-height:170px;
+  }
+}
