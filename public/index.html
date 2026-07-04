@@ -11,7 +11,7 @@
 <script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
 
 </head>
-<body class="share-snapshot-sample">
+<body>
 <div class="wrap">
   <h1>
     <img class="site-logo" src="logo.png" alt="Starting Five logo">
@@ -106,7 +106,7 @@
   <div id="shareModal" class="share-modal hidden" aria-hidden="true">
     <div class="share-modal-card">
       <div class="share-modal-title">Share Results</div>
-      <div class="share-modal-subtitle">Download a PNG of your draft results and share it anywhere</div>
+      <div class="share-modal-subtitle">Download a PNG of your draft results in the compact share-card layout</div>
       <div class="share-modal-actions">
         <button class="btn" id="downloadShareBtn" style="background:var(--hardwood); color:#1a1206; border:none;">Download PNG</button>
         <button class="btn" id="closeShareModalBtn">Cancel</button>
@@ -122,48 +122,9 @@
   <a class="feedback-link" href="https://forms.gle/gSxCA4PdJhkVy9Bt8" target="_blank" rel="noopener noreferrer">
     Report a bug or suggestion
   </a>
-  <div class="version-footer">v2.7.6</div>
+  <div class="version-footer">v2.7.7</div>
 </footer>
 
 <script src="app.js"></script>
-<script>
-(function loadShareSnapshotSample(){
-  const mk = (name, pos, positions, assignedPos, price, trueValue, ppg, rpg, apg, def, posPenaltyDist=0)=>({
-    name, pos, positions, assignedPos, soldPrice:price, trueValue,
-    adjustedValue:Math.round(trueValue * penaltyMultiplier(posPenaltyDist)),
-    ppg, rpg, apg, def, posPenaltyDist, drafted:true
-  });
-
-  const userRoster = [
-    mk('Keyonte George','G',['G'],'G',1,31,16.8,3.8,5.6,3),
-    mk('Luka Doncic','G',['G','F'],'G',1,96,28.2,8.0,7.7,4),
-    mk('Al Horford','C',['F','C'],'F',1,24,9.0,6.2,2.1,7,1),
-    mk('Andre Drummond','C',['C'],'F',1,22,7.3,7.8,0.5,5,1),
-    mk('Dereck Lively II','C',['C'],'C',1,33,8.7,7.5,1.4,7)
-  ];
-
-  const botRoster = [
-    mk('Kentavious Caldwell-Pope','G',['G'],'G',1,27,8.7,2.2,1.8,7),
-    mk('Jaden McDaniels','F',['F'],'G',1,34,12.2,5.7,1.8,8,1),
-    mk('Giannis Antetokounmpo','F',['F','C'],'F',1,98,30.4,11.9,6.5,9),
-    mk('Jayson Tatum','F',['F'],'F',1,90,26.8,8.7,6.0,7),
-    mk('Brook Lopez','C',['C'],'C',1,29,13.0,5.0,1.8,8)
-  ];
-
-  G = {
-    order:[...userRoster, ...botRoster],
-    budgets:{user:15, bot:15},
-    slots:{user:0, bot:0},
-    posSlots:{user:{G:0,F:0,C:0}, bot:{G:0,F:0,C:0}},
-    rosters:{user:userRoster, bot:botRoster},
-    over:true,
-    log:[]
-  };
-  APP_MODE = 'bot';
-  document.getElementById('setupScreen').classList.add('hidden');
-  document.getElementById('gameScreen').classList.add('hidden');
-  renderResults();
-})();
-</script>
 </body>
 </html>
