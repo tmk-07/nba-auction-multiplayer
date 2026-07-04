@@ -2671,7 +2671,9 @@ function buildRadarSVG(labels, userVals, botVals){
   const axes = labels.map((lbl,i)=>{
     const angle=-Math.PI/2+i*(2*Math.PI/5);
     const x2=cx+maxR*Math.cos(angle), y2=cy+maxR*Math.sin(angle);
-    const lx=cx+(maxR+28)*Math.cos(angle), ly=cy+(maxR+28)*Math.sin(angle);
+    const labelR = (i === 1 || i === 4) ? maxR + 32 : maxR + 10;
+    const yOffset = (i === 2 || i === 3) ? 6 : 0;
+    const lx=cx+labelR*Math.cos(angle), ly=cy+labelR*Math.sin(angle)+yOffset;
     return `<line x1="${cx}" y1="${cy}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#33353F" stroke-width="1"/>
     <text x="${lx.toFixed(1)}" y="${ly.toFixed(1)}" fill="#9A9CA8" font-size="11" font-family="Oswald, sans-serif" text-anchor="middle" dominant-baseline="middle">${lbl}</text>`;
   }).join('');
@@ -2832,24 +2834,38 @@ function renderResults(){
 
   rs.innerHTML = `
     <div class="results">
-      <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
-      <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
-        <div class="score-card you">
-          <div class="label">Your Team Rating</div>
-          <div class="value mono">${userScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
-        </div>
-        <div class="score-card bot">
-          <div class="label">Bot Team Rating</div>
-          <div class="value mono">${botScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
-        </div>
+      <div class="results-brand">
+        <img class="results-brand-logo" src="logo.png" alt="Starting Five logo">
+        <span>Starting Five</span>
       </div>
-      <h2>Team Shape</h2>
-      ${buildRadarSVG(labels, userAxes, botAxes)}
-      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;">
-        <span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Bot
+      <div class="results-summary-compact">
+        <div class="results-left-summary">
+          <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
+          <div class="results-rating-stack">
+            <div class="score-card you">
+              <div class="label">Your Team Rating</div>
+              <div class="value mono">${userScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+            </div>
+            <div class="score-card bot">
+              <div class="label">Bot Team Rating</div>
+              <div class="value mono">${botScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="results-radar-panel">
+          <h2>Team Shape</h2>
+          ${buildRadarSVG(labels, userAxes, botAxes)}
+          <div class="results-radar-legend">
+            <span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Bot
+          </div>
+        </div>
       </div>
       ${pairedRosterTable('Your Roster', 'Bot Roster', rows('user'), rows('bot'))}
-      <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="restart()">Play Again (New Pool)</button>
+      <div class="results-actions">
+        <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="restart()">Play Again (New Pool)</button>
+        <button class="btn share-results-btn" onclick="openShareModal()">Share Results</button>
+      </div>
+      <div class="results-url">startingfive.tkimify.com</div>
     </div>`;
 }
 
@@ -3506,20 +3522,32 @@ function renderFriendResults(state){
 
   rs.innerHTML = `
     <div class="results">
-      <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
-      <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
-        <div class="score-card you"><div class="label">Your Team Rating</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
-        <div class="score-card bot"><div class="label">${oppLabel} Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+      <div class="results-brand">
+        <img class="results-brand-logo" src="logo.png" alt="Starting Five logo">
+        <span>Starting Five</span>
       </div>
-      <h2>Team Shape</h2>
-      ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
-      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
+      <div class="results-summary-compact">
+        <div class="results-left-summary">
+          <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
+          <div class="results-rating-stack">
+            <div class="score-card you"><div class="label">Your Team Rating</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+            <div class="score-card bot"><div class="label">${oppLabel} Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+          </div>
+        </div>
+        <div class="results-radar-panel">
+          <h2>Team Shape</h2>
+          ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
+          <div class="results-radar-legend"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
+        </div>
+      </div>
       ${pairedRosterTable('Your Roster', `${oppLabel} Roster`, r.rows[state.side], r.rows[state.opponent.side])}
       <div class="results-actions">
         <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
+        <button class="btn share-results-btn" onclick="openShareModal()">Share Results</button>
         <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>
       </div>
       <div class="rematch-status">${rematchStatus}</div>
+      <div class="results-url">startingfive.tkimify.com</div>
     </div>`;
 }
 
@@ -3528,6 +3556,90 @@ function restart(){
   if(APP_MODE === 'friend') showLanding(); else newGame();
 }
 
+
+
+function openShareModal(){
+  const modal = document.getElementById('shareModal');
+  if(!modal) return;
+  const status = document.getElementById('shareModalStatus');
+  const downloadBtn = document.getElementById('downloadShareBtn');
+  if(status) status.textContent = '';
+  if(downloadBtn) downloadBtn.disabled = false;
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeShareModal(){
+  const modal = document.getElementById('shareModal');
+  const sandbox = document.getElementById('shareExportSandbox');
+  const status = document.getElementById('shareModalStatus');
+  const downloadBtn = document.getElementById('downloadShareBtn');
+  if(status) status.textContent = '';
+  if(downloadBtn) downloadBtn.disabled = false;
+  if(sandbox) sandbox.innerHTML = '';
+  if(!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
+function buildShareExportNode(){
+  const source = document.querySelector('#resultsScreen .results');
+  if(!source) throw new Error('No results are available to share yet.');
+  const clone = source.cloneNode(true);
+  clone.classList.add('share-export-card');
+  clone.querySelectorAll('.results-actions, .restart-btn, .rematch-status, .share-results-btn').forEach(el => el.remove());
+  return clone;
+}
+
+function shareFileName(){
+  const stamp = new Date().toISOString().slice(0,10);
+  return `starting-five-results-${stamp}.png`;
+}
+
+async function downloadResultsPng(){
+  const status = document.getElementById('shareModalStatus');
+  const downloadBtn = document.getElementById('downloadShareBtn');
+  const sandbox = document.getElementById('shareExportSandbox');
+
+  if(!window.htmlToImage || typeof window.htmlToImage.toPng !== 'function'){
+    if(status) status.textContent = 'PNG export library failed to load';
+    return;
+  }
+
+  try{
+    if(downloadBtn) downloadBtn.disabled = true;
+    if(status) status.textContent = 'Preparing PNG...';
+
+    if(sandbox) sandbox.innerHTML = '';
+    const exportNode = buildShareExportNode();
+    if(sandbox) sandbox.appendChild(exportNode);
+
+    if(document.fonts && document.fonts.ready){
+      await document.fonts.ready;
+    }
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    const dataUrl = await window.htmlToImage.toPng(exportNode, {
+      cacheBust: true,
+      pixelRatio: 2,
+      backgroundColor: '#10131b'
+    });
+
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = shareFileName();
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    if(status) status.textContent = 'PNG downloaded';
+    setTimeout(closeShareModal, 400);
+  }catch(err){
+    console.error('Failed to create share image', err);
+    if(status) status.textContent = 'Could not create PNG. Try again.';
+    if(downloadBtn) downloadBtn.disabled = false;
+  }
+}
 
 document.getElementById('botModeBtn').addEventListener('click', newGame);
 document.getElementById('botExitBtn').addEventListener('click', showLanding);
@@ -3538,4 +3650,11 @@ document.getElementById('findOpponentBtn').addEventListener('click', findOnlineO
 document.getElementById('backHomeBtn').addEventListener('click', showLanding);
 document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
 document.getElementById('playerNameInput').addEventListener('input', ()=>{ localStorage.setItem('STARTING_FIVE_PLAYER_NAME', cleanPlayerName(document.getElementById('playerNameInput').value)); });
+document.getElementById('downloadShareBtn').addEventListener('click', downloadResultsPng);
+document.getElementById('closeShareModalBtn').addEventListener('click', closeShareModal);
+document.getElementById('shareModal').addEventListener('click', (e)=>{ if(e.target.id === 'shareModal') closeShareModal(); });
+document.addEventListener('keydown', (e)=>{
+  if(e.key === 'Escape' && !document.getElementById('shareModal').classList.contains('hidden')) closeShareModal();
+});
 showLanding();
+
