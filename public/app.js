@@ -3132,15 +3132,9 @@ function connectFriendRoom(code, side){
     }
   });
   ws.addEventListener('close', ()=>{
-    // Ignore teardown of a socket we've already replaced (e.g. a
-    // reconnect/rejoin closed this one and opened a new FRIEND_WS) -
-    // otherwise this stale event fires after the new connection is already
-    // up and wrongly overwrites its success status.
-    if(FRIEND_WS !== ws) return;
     if(APP_MODE === 'friend') setFriendStatus('Disconnected from room. Refresh or rejoin with the same code.', true);
   });
   ws.addEventListener('error', ()=>{
-    if(FRIEND_WS !== ws) return;
     const msg = side === 'guest'
       ? 'Could not join this room. The code may be invalid, full, or expired.'
       : 'Could not connect to the room. Check your Worker deployment and try again.';

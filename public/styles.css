@@ -27,8 +27,8 @@
   .subtitle{color:var(--chalk-dim); font-size:13px; margin-bottom:18px;}
   .mono{font-family:'JetBrains Mono',monospace;}
 
-    .game-topbar{
-    display:flex; justify-content:flex-end; align-items:center; margin-bottom:12px;
+    .game-bottom-actions{
+    display:flex; justify-content:flex-end; align-items:center; margin-top:14px;
   }
   .small-nav-btn{
     padding:7px 11px; font-size:12px; border-color:var(--line);
@@ -413,7 +413,7 @@
 }
 
 
-/* v2.5.15 results tag/price fixed alignment with side-specific tag offsets */
+/* v2.5.16 results tag/price fixed alignment with side-specific tag offsets */
 .results .paid-align{
   display:inline-grid;
   align-items:baseline;
@@ -458,7 +458,7 @@
   margin-right:0;
 }
 
-/* v2.5.15 side-specific steal/overpay spacing
+/* v2.5.16 side-specific steal/overpay spacing
    Left side: price then tag, so move tag left toward the price.
    Right side: tag then price, so move tag right toward the price. */
 .results .paid-align-left .paired-tag-slot{
