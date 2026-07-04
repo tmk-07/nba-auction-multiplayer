@@ -3609,6 +3609,9 @@ function buildShareExportNode(){
   const legend = svg ? svg.nextElementSibling : null;
   const pairedRosters = clone.querySelector('.paired-rosters');
 
+  // Remove the Team Shape heading from the PNG export clone only
+  if(heading) heading.remove();
+
   const leftSummary = document.createElement('div');
   leftSummary.className = 'results-left-summary';
   if(winnerBanner) leftSummary.appendChild(winnerBanner);
@@ -3623,7 +3626,6 @@ function buildShareExportNode(){
 
   const radarPanel = document.createElement('div');
   radarPanel.className = 'results-radar-panel';
-  if(heading) radarPanel.appendChild(heading);
   if(svg) radarPanel.appendChild(svg);
   if(legend){
     legend.classList.add('results-radar-legend');

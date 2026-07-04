@@ -1602,3 +1602,37 @@
   font-weight: 700;
   letter-spacing: 0;
 }
+
+/* ===== Share PNG final export fixes ===== */
+
+.share-snapshot-sample .results-brand {
+  right: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  min-width: max-content;
+  max-width: none;
+  overflow: visible;
+  padding-right: 0;
+  transform: none;
+  flex-shrink: 0;
+}
+
+.share-snapshot-sample .results-brand span {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+  display: inline-block;
+  overflow: visible;
+}
+
+.share-snapshot-sample .results-radar-panel svg text {
+  font-family: 'Oswald', sans-serif;
+  font-weight: 700;
+}
+
+.share-snapshot-sample .results-radar-panel h2 {
+  display: none !important;
+}
