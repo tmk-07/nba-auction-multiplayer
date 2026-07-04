@@ -34,31 +34,31 @@
     </div>
 
     <div id="friendPanel" class="online-panel hidden">
-      <h2>Play Online</h2>
       <div class="online-options-grid">
-        <div class="landing-card online-option-card">
-          <h2>Play Friend</h2>
-          <p>Create a room and send your friend the code, or enter the code they gave you</p>
-          <div class="input-row">
-            <button class="btn" id="createRoomBtn" style="background:var(--hardwood); color:#1a1206; border:none;">Create Game</button>
-            <input id="joinCodeInput" class="text-input" maxlength="8" placeholder="CODE">
-            <button class="btn" id="joinRoomBtn">Join Game</button>
+        <div class="online-column">
+          <div class="landing-card online-option-card">
+            <h2>Play Friend</h2>
+            <p>Create a room and send your friend the code, or enter a code</p>
+            <div class="input-row">
+              <button class="btn" id="createRoomBtn" style="background:var(--hardwood); color:#1a1206; border:none;">Create Game</button>
+              <input id="joinCodeInput" class="text-input" maxlength="8" placeholder="CODE">
+              <button class="btn" id="joinRoomBtn">Join Game</button>
+            </div>
           </div>
+          <button class="link-btn online-back-btn" id="backHomeBtn">← Back</button>
         </div>
         <div class="landing-card online-option-card">
           <h2>Play Online</h2>
-          <p>Find an opponent and draft head-to-head with the same auction rules</p>
+          <p>Find an opponent and draft head-to-head</p>
           <button class="btn" id="findOpponentBtn" style="background:var(--hardwood); color:#1a1206; border:none;">Find Opponent</button>
           <div id="activePlayerCount" class="active-player-count">Active players: —</div>
         </div>
       </div>
       <div class="name-entry">
-        <label for="playerNameInput">Optional: enter name</label>
-        <input id="playerNameInput" class="text-input name-input" maxlength="18" placeholder="Name">
+        <input id="playerNameInput" class="text-input name-input" maxlength="18" placeholder="Name (optional)">
       </div>
       <div id="roomCodeDisplay" class="room-code hidden"></div>
       <div id="friendStatus" class="status-line"></div>
-      <button class="link-btn" id="backHomeBtn">← Back</button>
     </div>
   </div>
 
@@ -107,7 +107,7 @@
   <a class="feedback-link" href="https://forms.gle/gSxCA4PdJhkVy9Bt8" target="_blank" rel="noopener noreferrer">
     Report a bug or suggestion
   </a>
-  <div class="version-footer">v2.6.0</div>
+  <div class="version-footer">v2.6.1</div>
 </footer>
 
 <script src="app.js"></script>

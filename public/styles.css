@@ -521,3 +521,37 @@
     grid-template-columns:1fr;
   }
 }
+
+/* v2.6.1 online setup copy/layout tweaks */
+.online-panel{
+  margin-top:18px;
+}
+.online-panel > h2{
+  display:none;
+}
+.online-column{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+.online-back-btn{
+  margin-top:10px;
+  font-family:'JetBrains Mono', monospace;
+  color:var(--chalk-dim);
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:0.05em;
+}
+.online-back-btn:hover{
+  color:var(--gold);
+}
+.name-entry{
+  margin:16px auto 0;
+}
+.name-entry label{
+  display:none;
+}
+.name-input::placeholder{
+  color:var(--chalk-dim);
+  opacity:0.75;
+}
