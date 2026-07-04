@@ -776,3 +776,18 @@
     min-height:164px;
   }
 }
+
+
+/* v2.7.4 font cleanup */
+.subtitle,
+.landing-card p,
+.online-option-card p,
+.active-player-count{
+  font-family:'JetBrains Mono', monospace;
+}
+
+.score-card .sub{
+  font-family:'Oswald', sans-serif;
+  font-style:normal;
+  letter-spacing:0.03em;
+}
