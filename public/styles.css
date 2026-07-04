@@ -129,7 +129,7 @@
   .log .sys-log{color:var(--gold);}
 
   /* Results */
-  .results{background:var(--panel-bg); border:1px solid var(--gold); border-radius:10px; padding:20px;}
+  .results{background:var(--panel-bg); border:1px solid var(--gold); border-radius:10px; padding:12px 20px 20px;}
   .results h2{border:none; margin-top:0;}
   .winner-banner{font-family:'Oswald',sans-serif; font-size:26px; font-weight:700; margin-bottom:6px;}
   .winner-banner.you{color:var(--hardwood);}
