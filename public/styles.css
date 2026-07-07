@@ -1636,3 +1636,50 @@
 .share-snapshot-sample .results-radar-panel h2 {
   display: none !important;
 }
+
+/* Custom multiplayer draft pool dev screen */
+.custom-pool-panel{
+  margin-top:18px;
+}
+
+.custom-pool-card{
+  max-width:760px;
+  margin:0 auto;
+}
+
+.custom-pool-textarea{
+  width:100%;
+  min-height:260px;
+  resize:vertical;
+  background:var(--court-bg);
+  color:var(--chalk);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:12px 14px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.custom-pool-textarea:focus{
+  outline:none;
+  border-color:var(--hardwood);
+}
+
+.custom-pool-toggle{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-top:12px;
+  color:var(--chalk-dim);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+}
+
+.custom-pool-toggle input{
+  accent-color:var(--hardwood);
+}
+
+.custom-pool-actions{
+  margin-top:14px;
+}

@@ -1970,15 +1970,16 @@ function samplePlayers(tiers, count, selectedNames){
   const options = shuffle(MASTER.filter(p=>tiers.includes(p.tier) && !selectedNames.has(p.name)));
   return options.slice(0,count);
 }
-function buildPool(){
-  const profile = pick(POOL_PROFILES);
-  const selected = [];
-  const selectedNames = new Set();
-  profile.groups.forEach(group=>{
-    const picks = samplePlayers(group.tiers, group.count, selectedNames);
-    picks.forEach(p=>{ selected.push(p); selectedNames.add(p.name); });
-  });
-  const order = shuffle(selected).map((p,idx)=>({
+function normalizedPlayerName(name){
+  return String(name || '')
+    .trim()
+    .replace(/[’]/g, "'")
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+const MASTER_BY_NORMALIZED_NAME = new Map(MASTER.map(p => [normalizedPlayerName(p.name), p]));
+function playerToDraftEntry(p, idx){
+  return {
     id: "p"+idx,
     name:p.name,
     pos:p.pos,
@@ -1990,7 +1991,58 @@ function buildPool(){
     apg:p.apg,
     def:p.def,
     drafted:false
-  }));
+  };
+}
+function buildCustomPoolResult(customOrder){
+  if(!Array.isArray(customOrder) || !customOrder.length) return null;
+
+  const selected = [];
+  const used = new Set();
+  const unknown = [];
+  const duplicate = [];
+
+  customOrder.forEach(rawName=>{
+    const clean = String(rawName || '').replace(/^\s*\d+[.)-]?\s*/, '').trim();
+    if(!clean) return;
+    const player = MASTER_BY_NORMALIZED_NAME.get(normalizedPlayerName(clean));
+    if(!player){
+      unknown.push(clean);
+      return;
+    }
+    if(used.has(player.name)){
+      duplicate.push(player.name);
+      return;
+    }
+    used.add(player.name);
+    selected.push(player);
+  });
+
+  if(unknown.length || duplicate.length || selected.length < 10){
+    const problems = [];
+    if(selected.length < 10) problems.push(`at least 10 valid unique players required; found ${selected.length}`);
+    if(unknown.length) problems.push(`unknown players: ${unknown.join(', ')}`);
+    if(duplicate.length) problems.push(`duplicate players: ${duplicate.join(', ')}`);
+    return {ok:false, error: problems.join('; ')};
+  }
+
+  return {
+    ok:true,
+    customOrderNames:selected.map(p=>p.name),
+    pool:{
+      profile:{name:'Custom Pool', desc:'Custom multiplayer draft order.'},
+      order:selected.map(playerToDraftEntry)
+    }
+  };
+}
+function buildPool(){
+  const profile = pick(POOL_PROFILES);
+  const selected = [];
+  const selectedNames = new Set();
+  profile.groups.forEach(group=>{
+    const picks = samplePlayers(group.tiers, group.count, selectedNames);
+    picks.forEach(p=>{ selected.push(p); selectedNames.add(p.name); });
+  });
+  const order = shuffle(selected).map(playerToDraftEntry);
   return {profile, order};
 }
 
@@ -2120,9 +2172,12 @@ function buildResults(game){
 }
 
 function newRoomGame(code, options={}){
-  const {profile, order} = buildPool();
+  const pool = options.customPool || buildPool();
+  const {profile, order} = pool;
   return {
     code, matchType: options.matchType || 'friend', profileName: profile.name, status:'waiting', guestJoined:false, order,
+    pretendBot: !!options.pretendBot,
+    customOrderNames: options.customOrderNames || null,
     budgets:{host:20, guest:20},
     slots:{host:5, guest:5},
     posSlots:{host:{G:2,F:2,C:1}, guest:{G:2,F:2,C:1}},
@@ -2346,7 +2401,7 @@ function stateForClient(game, side, connected){
   const currentPlayer = game.auction ? game.order.find(p=>p.id===game.auction.playerId) : null;
   const names = game.names || {host:'', guest:''};
   return {
-    type:'state', roomCode: game.code, matchType: game.matchType || 'friend', side, status: game.status, over: game.over, connected,
+    type:'state', roomCode: game.code, matchType: game.matchType || 'friend', pretendBot: !!game.pretendBot, side, status: game.status, over: game.over, connected,
     draftedCount: game.rosters.host.length + game.rosters.guest.length, orderLength: game.order.length,
     hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
     names,
@@ -2393,7 +2448,31 @@ export class AuctionRoom {
     if(request.method === 'POST' && url.pathname.endsWith('/init')){
       const code = url.searchParams.get('code') || makeCode();
       const matchType = url.searchParams.get('matchType') === 'online' ? 'online' : 'friend';
-      if(!this.game){ this.game = newRoomGame(code, {matchType}); await this.save(); }
+      let initOptions = {};
+      try{
+        const rawBody = await request.text();
+        initOptions = rawBody ? JSON.parse(rawBody) : {};
+      }catch(e){
+        return new Response('Invalid room options JSON', {status:400, headers:CORS_HEADERS});
+      }
+
+      let customPoolResult = null;
+      if(initOptions.customOrder){
+        customPoolResult = buildCustomPoolResult(initOptions.customOrder);
+        if(!customPoolResult || !customPoolResult.ok){
+          return new Response(customPoolResult ? customPoolResult.error : 'Invalid custom draft order', {status:400, headers:CORS_HEADERS});
+        }
+      }
+
+      if(!this.game){
+        this.game = newRoomGame(code, {
+          matchType,
+          customPool: customPoolResult ? customPoolResult.pool : null,
+          customOrderNames: customPoolResult ? customPoolResult.customOrderNames : null,
+          pretendBot: !!initOptions.pretendBot
+        });
+        await this.save();
+      }
       return new Response(JSON.stringify({ok:true, code:this.game.code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
     }
     if(request.method === 'GET' && url.pathname.endsWith('/status')){
@@ -2407,6 +2486,7 @@ export class AuctionRoom {
         full,
         status:this.game.status,
         matchType:this.game.matchType || 'friend',
+        pretendBot:!!this.game.pretendBot,
         over:!!this.game.over,
         connected,
       }), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
@@ -2570,7 +2650,7 @@ export class AuctionRoom {
     if(side === 'guest' && !this.game.guestJoined){
       this.game.guestJoined = true;
       this.game.status = 'active';
-      addLog(this.game, 'sys', 'Guest joined. The friend draft is ready.');
+      addLog(this.game, 'sys', this.game.pretendBot ? 'Bot joined. The draft is ready.' : 'Guest joined. The friend draft is ready.');
       await this.save();
     }
     server.addEventListener('message', async (event)=>{
@@ -2608,7 +2688,15 @@ export class AuctionRoom {
       const code = this.game.code;
       const previousNames = this.game.names || {host:'', guest:''};
       const previousMatchType = this.game.matchType || 'friend';
-      const freshGame = newRoomGame(code, {matchType: previousMatchType});
+      const previousPretendBot = !!this.game.pretendBot;
+      const previousCustomOrderNames = this.game.customOrderNames || null;
+      const customPoolResult = previousCustomOrderNames ? buildCustomPoolResult(previousCustomOrderNames) : null;
+      const freshGame = newRoomGame(code, {
+        matchType: previousMatchType,
+        pretendBot: previousPretendBot,
+        customPool: customPoolResult && customPoolResult.ok ? customPoolResult.pool : null,
+        customOrderNames: customPoolResult && customPoolResult.ok ? customPoolResult.customOrderNames : null
+      });
       freshGame.names = previousNames;
       freshGame.status = 'active';
       freshGame.guestJoined = true;
@@ -2724,10 +2812,15 @@ export default {
     }
     if(request.method === 'POST' && url.pathname === '/api/room/create'){
       const code = makeCode();
+      const body = await request.text();
       const id = env.AUCTION_ROOMS.idFromName(code);
       const stub = env.AUCTION_ROOMS.get(id);
-      const initRes = await stub.fetch(`https://room/init?code=${code}`, {method:'POST'});
-      if(!initRes.ok) return new Response('Could not create room', {status:500, headers:CORS_HEADERS});
+      const initRes = await stub.fetch(`https://room/init?code=${code}`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body
+      });
+      if(!initRes.ok) return new Response(await initRes.text(), {status:initRes.status, headers:CORS_HEADERS});
       return new Response(JSON.stringify({code}), {headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
     }
     const statusMatch = url.pathname.match(/^\/api\/room\/([A-Z0-9]+)\/status$/i);

@@ -61,6 +61,23 @@
       <div id="roomCodeDisplay" class="room-code hidden"></div>
       <div id="friendStatus" class="status-line"></div>
     </div>
+
+    <div id="customPoolPanel" class="online-panel custom-pool-panel hidden">
+      <div class="landing-card custom-pool-card">
+        <h2>Custom Draft Pool</h2>
+        <p>Enter player names in the exact reveal order. Use one player per line. At least 10 valid players are recommended for a full 5v5 draft.</p>
+        <textarea id="customDraftOrderInput" class="custom-pool-textarea" spellcheck="false" placeholder="Nikola Jokic&#10;Luka Doncic&#10;Giannis Antetokounmpo"></textarea>
+        <label class="custom-pool-toggle">
+          <input type="checkbox" id="pretendBotToggle">
+          <span>Pretend this multiplayer game is vs Bot</span>
+        </label>
+        <div id="customPoolStatus" class="status-line"></div>
+        <div class="input-row custom-pool-actions">
+          <button class="btn" id="createCustomRoomBtn" style="background:var(--hardwood); color:#1a1206; border:none;">Create Custom Game</button>
+          <button class="btn" id="customPoolBackBtn">Back</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="gameScreen" class="hidden">

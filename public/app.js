@@ -1994,6 +1994,19 @@ const BOT_PERSONAS = [
 /* ---------------- STATE ---------------- */
 let G = null;
 let LAST_SHARE_RESULT = null;
+const CUSTOM_POOL_SECRET_CODE = 'TKIMDEV';
+const CUSTOM_POOL_SAMPLE_ORDER = [
+  'Nikola Jokic',
+  'Luka Doncic',
+  'Giannis Antetokounmpo',
+  'Shai Gilgeous-Alexander',
+  'Jayson Tatum',
+  'Victor Wembanyama',
+  'Anthony Edwards',
+  'Kevin Durant',
+  'Stephen Curry',
+  'LeBron James'
+];
 
 function rand(min,max){ return min + Math.random()*(max-min); }
 function pick(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
@@ -2941,7 +2954,7 @@ function render(){
           <button class="btn" onclick="userAutoFillBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
           <button class="btn" onclick="userAutoFillBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
-        </div>` : `<div class="waiting">Opponent selecting required player</div>`}
+        </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
   } else if(G.auction){
     const player = G.order.find(p=>p.id===G.auction.playerId);
@@ -3103,8 +3116,82 @@ function populatePlayerName(){
 }
 
 function opponentDisplayName(state){
+  if(state && state.pretendBot) return 'Bot';
   const name = cleanPlayerName(state && state.opponent && state.opponent.name);
   return name || 'Opponent';
+}
+
+function setCustomPoolStatus(text, isError=false){
+  const el = document.getElementById('customPoolStatus');
+  if(el){
+    el.textContent = text || '';
+    el.style.color = isError ? 'var(--danger)' : 'var(--chalk-dim)';
+  }
+}
+
+function normalizeCustomDraftNames(raw){
+  return (raw || '')
+    .split(/[\n,]+/)
+    .map(item => item.replace(/^\s*\d+[.)-]?\s*/, '').trim())
+    .filter(Boolean);
+}
+
+function showCustomPoolPanel(){
+  APP_MODE = 'custom-setup';
+  stopActivePlayerPolling();
+  stopActivePresence();
+  leaveActivePresence();
+  document.getElementById('setupScreen').classList.remove('hidden');
+  document.getElementById('landingPanel').classList.add('hidden');
+  document.getElementById('friendPanel').classList.add('hidden');
+  document.getElementById('customPoolPanel').classList.remove('hidden');
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('resultsScreen').classList.add('hidden');
+
+  const input = document.getElementById('customDraftOrderInput');
+  if(input && !input.value){
+    input.value = localStorage.getItem('STARTING_FIVE_CUSTOM_DRAFT_ORDER') || CUSTOM_POOL_SAMPLE_ORDER.join('\n');
+  }
+  setCustomPoolStatus(`Custom mode unlocked. Secret code: ${CUSTOM_POOL_SECRET_CODE}`);
+}
+
+async function createCustomRoom(){
+  const btn = document.getElementById('createCustomRoomBtn');
+  const input = document.getElementById('customDraftOrderInput');
+  const pretendBot = !!(document.getElementById('pretendBotToggle') && document.getElementById('pretendBotToggle').checked);
+  const names = normalizeCustomDraftNames(input ? input.value : '');
+
+  if(names.length < 10){
+    setCustomPoolStatus(`Add at least 10 player names. Current count: ${names.length}.`, true);
+    return;
+  }
+
+  if(input) localStorage.setItem('STARTING_FIVE_CUSTOM_DRAFT_ORDER', input.value);
+  if(btn) btn.disabled = true;
+  setCustomPoolStatus('Creating custom room...');
+
+  try{
+    const res = await fetch(apiUrl('/api/room/create'), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({customOrder:names, pretendBot})
+    });
+    if(!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+
+    document.getElementById('landingPanel').classList.add('hidden');
+    document.getElementById('customPoolPanel').classList.add('hidden');
+    document.getElementById('friendPanel').classList.remove('hidden');
+    const codeEl = document.getElementById('roomCodeDisplay');
+    codeEl.textContent = data.code;
+    codeEl.classList.remove('hidden');
+    setFriendStatus(pretendBot ? `Custom room ${data.code} created. Waiting for Bot...` : `Custom room ${data.code} created. Waiting for friend...`);
+    connectFriendRoom(data.code, 'host', pretendBot ? 'bot-disguise' : 'friend');
+  }catch(err){
+    setCustomPoolStatus(`Could not create custom room. ${err.message || err}`, true);
+  }finally{
+    if(btn) btn.disabled = false;
+  }
 }
 
 function showLanding(){
@@ -3116,6 +3203,8 @@ function showLanding(){
   document.getElementById('setupScreen').classList.remove('hidden');
   document.getElementById('landingPanel').classList.remove('hidden');
   document.getElementById('friendPanel').classList.add('hidden');
+  const customPanel = document.getElementById('customPoolPanel');
+  if(customPanel) customPanel.classList.add('hidden');
   document.getElementById('gameScreen').classList.add('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
   document.getElementById('roomCodeDisplay').classList.add('hidden');
@@ -3129,6 +3218,8 @@ function showFriendPanel(){
   APP_MODE = 'friend-setup';
   document.getElementById('landingPanel').classList.add('hidden');
   document.getElementById('friendPanel').classList.remove('hidden');
+  const customPanel = document.getElementById('customPoolPanel');
+  if(customPanel) customPanel.classList.add('hidden');
   populatePlayerName();
   const findBtn = document.getElementById('findOpponentBtn');
   if(findBtn) findBtn.disabled = false;
@@ -3254,6 +3345,11 @@ async function joinFriendRoom(){
   const input = document.getElementById('joinCodeInput');
   const code = (input.value || '').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
   if(!code){ setFriendStatus('Enter a room code first.', true); return; }
+  if(code === CUSTOM_POOL_SECRET_CODE){
+    input.value = '';
+    showCustomPoolPanel();
+    return;
+  }
   setFriendStatus('Checking room code...');
   document.getElementById('roomCodeDisplay').textContent = code;
   document.getElementById('roomCodeDisplay').classList.add('hidden');
@@ -3304,11 +3400,12 @@ function connectFriendRoom(code, side, matchType='friend'){
   startActivePresence(matchType === 'online' ? 'online-game' : 'friend-game');
   APP_MODE = 'friend';
   setGameLabels('Opponent');
-  setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : `Room ${code} created. Waiting for friend...`) : `Joining room ${code}...`);
+  const isBotDisguise = matchType === 'bot-disguise';
+  setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : (isBotDisguise ? `Room ${code} created. Waiting for Bot...` : `Room ${code} created. Waiting for friend...`)) : `Joining room ${code}...`);
   const nameParam = name ? `&name=${encodeURIComponent(name)}` : '';
   const ws = new WebSocket(websocketUrl(`/api/room/${encodeURIComponent(code)}/ws?side=${encodeURIComponent(side)}${nameParam}`));
   FRIEND_WS = ws;
-  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : `Room ${code}. Send this code to your friend.`) : `Connected to room ${code}.`));
+  ws.addEventListener('open', ()=> setFriendStatus(side==='host' ? (matchType === 'online' ? 'Finding an opponent…' : (isBotDisguise ? `Room ${code}. Send this code to your Bot.` : `Room ${code}. Send this code to your friend.`)) : `Connected to room ${code}.`));
   ws.addEventListener('message', (event)=>{
     let msg;
     try{ msg = JSON.parse(event.data); }catch(e){ return; }
@@ -3394,7 +3491,8 @@ function renderFriendState(){
   if(state.over && state.results){ renderFriendResults(state); return; }
 
   applyFriendStateToG(state);
-  setGameLabels(opponentDisplayName(state));
+  const oppLabel = opponentDisplayName(state);
+  setGameLabels(oppLabel);
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
@@ -3420,18 +3518,18 @@ function renderFriendState(){
   const aArea = document.getElementById('auctionArea');
   if(state.status !== 'waiting' && !opponentConnected){
     aArea.innerHTML = `<div class="auction-panel" style="text-align:center; border-color:var(--danger);">
-      <div style="color:var(--danger); font-weight:700; margin-bottom:8px;">Opponent disconnected</div>
-      <div style="color:var(--chalk-dim);">The game is paused until your friend reconnects with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
+      <div style="color:var(--danger); font-weight:700; margin-bottom:8px;">${oppLabel} disconnected</div>
+      <div style="color:var(--chalk-dim);">The game is paused until ${oppLabel} reconnects with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
     </div>`;
   } else if(state.status === 'waiting'){
     const isOnlineMatch = state.matchType === 'online' || FRIEND_MATCH_TYPE === 'online';
     aArea.innerHTML = isOnlineMatch
       ? `<div class="auction-panel finding-opponent-panel"><div class="finding-opponent-text">Finding an opponent…</div></div>`
-      : `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to your friend.</div><div class="room-code">${state.roomCode}</div></div>`;
+      : `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to ${state.pretendBot ? 'your Bot' : 'your friend'}.</div><div class="room-code">${state.roomCode}</div></div>`;
   } else if(state.auction && state.auction.autoFill){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;
-    const sideLabel = myTurn ? 'your required pick' : 'opponent selecting required player';
+    const sideLabel = myTurn ? 'your required pick' : `${oppLabel} selecting required player`;
     const cap = state.me.requiredPickMaxBid ?? Math.max(1, state.me.maxBid);
     aArea.innerHTML = `
       <div class="auction-panel">
@@ -3452,7 +3550,7 @@ function renderFriendState(){
           <button class="btn" onclick="friendBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
           <button class="btn" onclick="friendBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
-        </div>` : `<div class="waiting">Opponent selecting required player</div>`}
+        </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
   } else if(state.auction){
     const player = state.auction.player;
@@ -3463,8 +3561,8 @@ function renderFriendState(){
     const bidLabel = noBidYet ? 'No bid yet' : '$'+state.auction.bid;
     const otherDeclined = noBidYet && state.auction.openDeclines && state.auction.openDeclines[state.opponent.side];
     const holderLabel = noBidYet
-      ? (otherDeclined ? 'opponent passed; your chance to open' : (myTurn ? 'your first action' : 'opponent first action'))
-      : `held by ${state.auction.bidder===state.side?'you':'opponent'}`;
+      ? (otherDeclined ? `${oppLabel} passed; your chance to open` : (myTurn ? 'your first action' : `${oppLabel} first action`))
+      : `held by ${state.auction.bidder===state.side?'you':oppLabel}`;
     const actionVerb = noBidYet ? 'Open at' : 'Raise to';
     const passLabel = noBidYet ? (otherDeclined ? 'Pass / Send Back' : 'Pass') : 'Pass';
     aArea.innerHTML = `
@@ -3486,7 +3584,7 @@ function renderFriendState(){
           <button class="btn" onclick="friendBid(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
           <button class="btn" onclick="friendBid(5)" ${nb5>cap?'disabled':''}>${actionVerb} $${nb5}</button>
           <button class="btn pass" onclick="friendPass()">${passLabel}</button>
-        </div>` : `<div class="waiting">Waiting on opponent...</div>`}
+        </div>` : `<div class="waiting">Waiting on ${oppLabel}...</div>`}
       </div>`;
   } else {
     const buttonLabel = friendContinueButtonLabel(state);
@@ -3523,8 +3621,8 @@ function renderFriendResults(state){
   const oppRequested = !!(rematch.requested && rematch.requested[state.opponent.side]);
   const oppConnected = !!(state.connected && state.connected[state.opponent.side]);
   const rematchStatus = myRequested
-    ? (oppRequested ? 'Starting rematch...' : (oppConnected ? 'Rematch requested. Waiting for opponent...' : 'Rematch requested. Waiting for opponent to reconnect...'))
-    : (oppRequested ? 'Opponent wants a rematch.' : (oppConnected ? 'Start a fresh draft with the same room code.' : 'Opponent disconnected. They can reconnect with the same room code before a rematch.'));
+    ? (oppRequested ? 'Starting rematch...' : (oppConnected ? `Rematch requested. Waiting for ${oppLabel}...` : `Rematch requested. Waiting for ${oppLabel} to reconnect...`))
+    : (oppRequested ? `${oppLabel} wants a rematch.` : (oppConnected ? 'Start a fresh draft with the same room code.' : `${oppLabel} disconnected. They can reconnect with the same room code before a rematch.`));
   const rematchButtonText = myRequested ? 'Rematch Requested' : (oppRequested ? 'Accept Rematch' : 'Rematch');
 
   LAST_SHARE_RESULT = {
@@ -3541,7 +3639,7 @@ function renderFriendResults(state){
     rightTitle:`${oppLabel} Roster`,
     leftRows:r.rows[state.side],
     rightRows:r.rows[state.opponent.side],
-    legendOpponent:'Opponent'
+    legendOpponent:oppLabel
   };
 
   rs.innerHTML = `
@@ -3553,7 +3651,7 @@ function renderFriendResults(state){
       </div>
       <h2>Team Shape</h2>
       ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
-      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> Opponent</div>
+      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> ${oppLabel}</div>
       ${pairedRosterTable('Your Roster', `${oppLabel} Roster`, r.rows[state.side], r.rows[state.opponent.side])}
       <div class="results-actions">
         <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
@@ -3803,8 +3901,11 @@ document.getElementById('createRoomBtn').addEventListener('click', createFriendR
 document.getElementById('joinRoomBtn').addEventListener('click', joinFriendRoom);
 document.getElementById('findOpponentBtn').addEventListener('click', findOnlineOpponent);
 document.getElementById('backHomeBtn').addEventListener('click', showLanding);
+document.getElementById('createCustomRoomBtn').addEventListener('click', createCustomRoom);
+document.getElementById('customPoolBackBtn').addEventListener('click', showFriendPanel);
 document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
 document.getElementById('playerNameInput').addEventListener('input', ()=>{ localStorage.setItem('STARTING_FIVE_PLAYER_NAME', cleanPlayerName(document.getElementById('playerNameInput').value)); });
+document.getElementById('customDraftOrderInput').addEventListener('input', ()=>{ localStorage.setItem('STARTING_FIVE_CUSTOM_DRAFT_ORDER', document.getElementById('customDraftOrderInput').value); });
 document.getElementById('downloadShareBtn').addEventListener('click', downloadResultsPng);
 document.getElementById('nativeShareBtn').addEventListener('click', nativeShareResults);
 document.getElementById('twitterShareBtn').addEventListener('click', shareResultsToTwitter);
