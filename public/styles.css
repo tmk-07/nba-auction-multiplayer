@@ -1685,11 +1685,11 @@
 }
 
 /* Footer social link */
-.footer-links{
+.footer-social-row{
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:12px;
+  margin-bottom:7px;
 }
 
 .instagram-link{
