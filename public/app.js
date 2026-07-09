@@ -3894,6 +3894,21 @@ function shareResultsToTwitter(){
   );
 }
 
+
+function openAdvancedSettings(){
+  const modal = document.getElementById('advancedSettingsModal');
+  if(!modal) return;
+  modal.classList.remove('hidden');
+  modal.setAttribute('aria-hidden', 'false');
+}
+
+function closeAdvancedSettings(){
+  const modal = document.getElementById('advancedSettingsModal');
+  if(!modal) return;
+  modal.classList.add('hidden');
+  modal.setAttribute('aria-hidden', 'true');
+}
+
 document.getElementById('botModeBtn').addEventListener('click', newGame);
 document.getElementById('botExitBtn').addEventListener('click', showLanding);
 document.getElementById('friendModeBtn').addEventListener('click', showFriendPanel);
@@ -3901,6 +3916,10 @@ document.getElementById('createRoomBtn').addEventListener('click', createFriendR
 document.getElementById('joinRoomBtn').addEventListener('click', joinFriendRoom);
 document.getElementById('findOpponentBtn').addEventListener('click', findOnlineOpponent);
 document.getElementById('backHomeBtn').addEventListener('click', showLanding);
+document.getElementById('advancedSettingsBtn').addEventListener('click', openAdvancedSettings);
+document.getElementById('advancedSettingsCloseBtn').addEventListener('click', closeAdvancedSettings);
+document.getElementById('advancedSettingsDoneBtn').addEventListener('click', closeAdvancedSettings);
+document.getElementById('advancedSettingsModal').addEventListener('click', (e)=>{ if(e.target.id === 'advancedSettingsModal') closeAdvancedSettings(); });
 document.getElementById('createCustomRoomBtn').addEventListener('click', createCustomRoom);
 document.getElementById('customPoolBackBtn').addEventListener('click', showFriendPanel);
 document.getElementById('joinCodeInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') joinFriendRoom(); });
@@ -3912,6 +3931,8 @@ document.getElementById('twitterShareBtn').addEventListener('click', shareResult
 document.getElementById('closeShareModalBtn').addEventListener('click', closeShareModal);
 document.getElementById('shareModal').addEventListener('click', (e)=>{ if(e.target.id === 'shareModal') closeShareModal(); });
 document.addEventListener('keydown', (e)=>{
-  if(e.key === 'Escape' && !document.getElementById('shareModal').classList.contains('hidden')) closeShareModal();
+  if(e.key !== 'Escape') return;
+  if(!document.getElementById('shareModal').classList.contains('hidden')) closeShareModal();
+  if(!document.getElementById('advancedSettingsModal').classList.contains('hidden')) closeAdvancedSettings();
 });
 showLanding();
