@@ -74,39 +74,37 @@
         </div>
 
         <div class="advanced-settings-row">
-          <label for="advancedTeamSizeSelect">
-            <span>Team size</span>
+          <label for="advancedPlayerCountSelect">
+            <span>Number of players</span>
             <small>UI only for now — does not affect the game yet</small>
           </label>
-          <select id="advancedTeamSizeSelect" class="advanced-select">
-            <option value="5" selected>5 players · 2G / 2F / 1C</option>
-            <option value="3">3 players · 1G / 1F / 1C</option>
-            <option value="4">4 players · 1G / 2F / 1C</option>
-            <option value="6">6 players · 2G / 3F / 1C</option>
+          <select id="advancedPlayerCountSelect" class="advanced-select">
+            <option value="5" selected>5 players</option>
+            <option value="3">3 players</option>
+            <option value="4">4 players</option>
+            <option value="6">6 players</option>
           </select>
         </div>
 
         <div class="advanced-settings-row">
-          <label for="advancedBudgetSelect">
+          <label for="advancedBudgetInput">
             <span>Budget</span>
-            <small>Future setting for custom room rules</small>
+            <small>Enter a custom dollar amount</small>
           </label>
-          <select id="advancedBudgetSelect" class="advanced-select">
-            <option value="20" selected>$20</option>
-            <option value="15">$15</option>
-            <option value="25">$25</option>
-            <option value="30">$30</option>
-          </select>
+          <div class="advanced-budget-input-wrap">
+            <span class="advanced-budget-prefix">$</span>
+            <input id="advancedBudgetInput" class="advanced-input advanced-budget-input" type="number" min="1" max="99" step="1" value="20" inputmode="numeric">
+          </div>
         </div>
 
         <div class="advanced-settings-row">
           <label for="advancedDraftPoolSelect">
             <span>Draft pool</span>
-            <small>Future setting for random vs custom pools</small>
+            <small>Future setting for current vs historical pools</small>
           </label>
           <select id="advancedDraftPoolSelect" class="advanced-select">
-            <option value="random" selected>Random pool</option>
-            <option value="custom">Custom order</option>
+            <option value="current" selected>Current players</option>
+            <option value="all-time">All time</option>
           </select>
         </div>
 
@@ -208,7 +206,7 @@
   <a class="feedback-link" href="https://forms.gle/gSxCA4PdJhkVy9Bt8" target="_blank" rel="noopener noreferrer">
     Report a bug or suggestion
   </a>
-  <div class="version-footer">v3.1.1</div>
+  <div class="version-footer">v3.1.3</div>
 </footer>
 
 <script src="app.js"></script>

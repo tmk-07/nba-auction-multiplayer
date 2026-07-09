@@ -1896,3 +1896,40 @@
     text-align:left;
   }
 }
+
+.advanced-input{
+  width:100%;
+  background:var(--court-bg);
+  color:var(--chalk);
+  border:1px solid var(--line);
+  border-radius:7px;
+  padding:10px 11px;
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  font-weight:700;
+}
+
+.advanced-input:focus{
+  outline:none;
+  border-color:var(--hardwood);
+}
+
+.advanced-budget-input-wrap{
+  position:relative;
+}
+
+.advanced-budget-prefix{
+  position:absolute;
+  left:11px;
+  top:50%;
+  transform:translateY(-50%);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+  font-weight:800;
+  color:var(--gold);
+  pointer-events:none;
+}
+
+.advanced-budget-input{
+  padding-left:26px;
+}
