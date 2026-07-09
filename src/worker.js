@@ -2326,7 +2326,7 @@ function passBeforeOpeningBid(game, side){
 function resolveAutoFillPick(game, side, price=1){
   if(!game.auction || !game.auction.autoFill || game.auction.turn !== side) return;
   price = Number(price);
-  if(![1,2,5].includes(price)) return;
+  if(!Number.isInteger(price) || price < 1) return;
   if(price > requiredPickMaxBid(game, side)) return;
 
   const auction = game.auction;
@@ -2375,7 +2375,7 @@ function processBid(game, side, amount){
   if(game.over || game.status !== 'active') return;
   if(!game.auction || game.auction.turn !== side || game.slots[side] <= 0) return;
   amount = Number(amount);
-  if(![1,2,5].includes(amount)) return;
+  if(!Number.isInteger(amount) || amount < 1) return;
   if(game.auction.autoFill){
     resolveAutoFillPick(game, side, amount);
     return;

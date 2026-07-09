@@ -2423,7 +2423,7 @@ function startAutoFillRound(side){
 function resolveAutoFillPick(side, price=1){
   if(!G.auction || !G.auction.autoFill || G.auction.turn !== side) return;
   price = Number(price);
-  if(![1,2,5].includes(price)) return;
+  if(!Number.isInteger(price) || price < 1) return;
   if(price > requiredPickMaxBid(side)) return;
 
   const auction = G.auction;
@@ -2502,6 +2502,8 @@ function passBeforeOpeningBid(side){
 function userRaise(amount){
   if(!G.auction || G.auction.turn!=='user' || G.slots.user<=0) return;
   if(G.auction.autoFill) return;
+  amount = Number(amount);
+  if(!Number.isInteger(amount) || amount < 1) return;
   const openingBid = G.auction.bid===0;
   const newBid = G.auction.bid + amount;
   if(newBid > maxBid('user')) return;
@@ -2909,6 +2911,69 @@ function friendContinueButtonLabel(state){
 }
 
 /* ---------------- RENDER ---------------- */
+
+function customBidControlHTML(inputId, min, max, submitCall){
+  const disabled = max < min;
+  const rangeText = disabled ? '—' : `${min}-${max}`;
+  return `
+    <div class="custom-bid-control ${disabled ? 'disabled' : ''}">
+      <span class="custom-bid-prefix">$</span>
+      <input
+        id="${inputId}"
+        class="custom-bid-input"
+        type="number"
+        min="${min}"
+        max="${max}"
+        step="1"
+        inputmode="numeric"
+        placeholder="${rangeText}"
+        ${disabled ? 'disabled' : ''}
+        onkeydown="if(event.key==='Enter'){event.preventDefault(); ${submitCall};}"
+      >
+      <button class="btn custom-bid-btn" onclick="${submitCall}" ${disabled ? 'disabled' : ''}>Custom</button>
+    </div>`;
+}
+
+function readCustomBidTarget(inputId, min, max){
+  const input = document.getElementById(inputId);
+  if(!input) return null;
+  const target = Number(input.value);
+  if(!Number.isInteger(target) || target < min || target > max){
+    input.focus();
+    input.select();
+    return null;
+  }
+  return target;
+}
+
+function userRaiseCustom(inputId){
+  if(!G || !G.auction || G.auction.turn !== 'user' || G.auction.autoFill) return;
+  const current = G.auction.bid || 0;
+  const target = readCustomBidTarget(inputId, current + 1, maxBid('user'));
+  if(target === null) return;
+  userRaise(target - current);
+}
+
+function userAutoFillBidCustom(inputId){
+  if(!G || !G.auction || G.auction.turn !== 'user' || !G.auction.autoFill) return;
+  const target = readCustomBidTarget(inputId, 1, requiredPickMaxBid('user'));
+  if(target === null) return;
+  userAutoFillBid(target);
+}
+
+function friendBidCustom(inputId){
+  const state = FRIEND_STATE;
+  if(!state || !state.auction || state.auction.turn !== state.side) return;
+  const isAutoFill = !!state.auction.autoFill;
+  const current = isAutoFill ? 0 : (state.auction.bid || 0);
+  const cap = isAutoFill
+    ? (state.me.requiredPickMaxBid ?? Math.max(1, state.me.maxBid))
+    : state.me.maxBid;
+  const target = readCustomBidTarget(inputId, current + 1, cap);
+  if(target === null) return;
+  friendBid(isAutoFill ? target : target - current);
+}
+
 function render(){
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
@@ -2952,7 +3017,7 @@ function render(){
         <div class="auction-controls">
           <button class="btn" onclick="userAutoFillBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
           <button class="btn" onclick="userAutoFillBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
-          <button class="btn" onclick="userAutoFillBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
+          ${customBidControlHTML('userAutoFillCustomBidInput', 1, cap, "userAutoFillBidCustom('userAutoFillCustomBidInput')")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
         </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
@@ -2960,7 +3025,7 @@ function render(){
     const player = G.order.find(p=>p.id===G.auction.playerId);
     const userTurn = G.auction.turn==='user';
     const noBidYet = !G.auction.bidder;
-    const nb1 = G.auction.bid+1, nb2 = G.auction.bid+2, nb5 = G.auction.bid+5;
+    const nb1 = G.auction.bid+1, nb2 = G.auction.bid+2;
     const cap = maxBid('user');
     const bidLabel = noBidYet ? 'No bid yet' : '$'+G.auction.bid;
     const openDeclines = G.auction.openDeclines || {user:false, bot:false};
@@ -2989,7 +3054,7 @@ function render(){
         <div class="auction-controls">
           <button class="btn" onclick="userRaise(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
           <button class="btn" onclick="userRaise(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
-          <button class="btn" onclick="userRaise(5)" ${nb5>cap?'disabled':''}>${actionVerb} $${nb5}</button>
+          ${customBidControlHTML('userCustomBidInput', nb1, cap, "userRaiseCustom('userCustomBidInput')")}
           <button class="btn pass" onclick="userPass()">${passLabel}</button>
         </div>` : `<div class="waiting">Waiting on bot...</div>`}
       </div>`;
@@ -3548,7 +3613,7 @@ function renderFriendState(){
         <div class="auction-controls">
           <button class="btn" onclick="friendBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
           <button class="btn" onclick="friendBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
-          <button class="btn" onclick="friendBid(5)" ${5>cap?'disabled':''}>Bid $5</button>
+          ${customBidControlHTML('friendAutoFillCustomBidInput', 1, cap, "friendBidCustom('friendAutoFillCustomBidInput')")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
         </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
@@ -3556,7 +3621,7 @@ function renderFriendState(){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;
     const noBidYet = !state.auction.bidder;
-    const nb1 = state.auction.bid+1, nb2 = state.auction.bid+2, nb5 = state.auction.bid+5;
+    const nb1 = state.auction.bid+1, nb2 = state.auction.bid+2;
     const cap = state.me.maxBid;
     const bidLabel = noBidYet ? 'No bid yet' : '$'+state.auction.bid;
     const otherDeclined = noBidYet && state.auction.openDeclines && state.auction.openDeclines[state.opponent.side];
@@ -3582,7 +3647,7 @@ function renderFriendState(){
         <div class="auction-controls">
           <button class="btn" onclick="friendBid(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
           <button class="btn" onclick="friendBid(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
-          <button class="btn" onclick="friendBid(5)" ${nb5>cap?'disabled':''}>${actionVerb} $${nb5}</button>
+          ${customBidControlHTML('friendCustomBidInput', nb1, cap, "friendBidCustom('friendCustomBidInput')")}
           <button class="btn pass" onclick="friendPass()">${passLabel}</button>
         </div>` : `<div class="waiting">Waiting on ${oppLabel}...</div>`}
       </div>`;
