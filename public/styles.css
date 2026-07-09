@@ -2010,3 +2010,18 @@
     width:auto;
   }
 }
+
+/* Hide number input spinner arrows */
+.custom-bid-input::-webkit-outer-spin-button,
+.custom-bid-input::-webkit-inner-spin-button,
+.advanced-budget-input::-webkit-outer-spin-button,
+.advanced-budget-input::-webkit-inner-spin-button{
+  -webkit-appearance:none;
+  margin:0;
+}
+
+.custom-bid-input,
+.advanced-budget-input{
+  -moz-appearance:textfield;
+  appearance:textfield;
+}
