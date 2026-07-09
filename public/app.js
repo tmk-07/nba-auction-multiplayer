@@ -2415,7 +2415,7 @@ function startAutoFillRound(side){
 
   const roundNumber = G.rosters.user.length + G.rosters.bot.length + 1;
   const sideLabel = side === 'user' ? 'You' : 'Bot';
-  logMsg('sys', `Round ${roundNumber} of ${G.order.length}: ${player.name} revealed. ${sideLabel} must take ${player.name} because the other roster is full.`);
+  logMsg('sys', `Round ${roundNumber} of ${G.order.length}: ${player.name} revealed. ${sideLabel} must take this player because the other roster is full.`);
   render();
   if(side === 'bot') scheduleBotAutoFillPick();
 }
@@ -2627,11 +2627,18 @@ function resolveAuction(winnerSide){
   G.roundIndex += 1;
 
   if(maybeAutoFillAfterRosterFull()) return;
+
+  const autoSide = visibleAutoFillSide();
+  if(autoSide){
+    startAutoFillRound(autoSide);
+    return;
+  }
+
   if(G.roundIndex >= G.order.length){
     endGame();
     return;
   }
-  render(); // shows the "Reveal Next Player" prompt
+  render(); // shows the continue prompt
 }
 
 /* ---------------- RESULTS ---------------- */
@@ -3004,7 +3011,7 @@ function render(){
   if(G.auction && G.auction.autoFill){
     const player = G.order.find(p=>p.id===G.auction.playerId);
     const userTurn = G.auction.turn==='user';
-    const sideLabel = userTurn ? 'your required pick' : 'opponent selecting required player';
+    const sideLabel = userTurn ? 'your required pick' : 'Bot selecting required player';
     const cap = userTurn ? requiredPickMaxBid('user') : requiredPickMaxBid('bot');
     if(!userTurn) scheduleBotAutoFillPick();
     aArea.innerHTML = `
@@ -3026,7 +3033,7 @@ function render(){
           <button class="btn" onclick="userAutoFillBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
           ${customBidControlHTML('userAutoFillCustomBidInput', 1, cap, "userAutoFillBidCustom('userAutoFillCustomBidInput')", "Bid")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
-        </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
+        </div>` : `<div class="waiting">Bot selecting required player</div>`}
       </div>`;
   } else if(G.auction){
     const player = G.order.find(p=>p.id===G.auction.playerId);
