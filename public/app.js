@@ -2912,12 +2912,19 @@ function friendContinueButtonLabel(state){
 
 /* ---------------- RENDER ---------------- */
 
-function customBidControlHTML(inputId, min, max, submitCall){
+function customBidControlHTML(inputId, min, max, submitCall, labelText='Raise to'){
   const disabled = max < min;
-  const rangeText = disabled ? '—' : `${min}-${max}`;
+  const defaultValue = disabled ? '' : Math.min(max, Math.max(min, min + 2));
   return `
-    <div class="custom-bid-control ${disabled ? 'disabled' : ''}">
-      <span class="custom-bid-prefix">$</span>
+    <div
+      class="btn custom-bid-control ${disabled ? 'disabled' : ''}"
+      role="button"
+      tabindex="${disabled ? '-1' : '0'}"
+      onclick="if(event.target.tagName !== 'INPUT'){${submitCall};}"
+      onkeydown="if((event.key==='Enter' || event.key===' ') && event.target.tagName !== 'INPUT'){event.preventDefault(); ${submitCall};}"
+      title="${disabled ? 'No custom bid available' : `Click, edit the amount, then press Enter or click the button`}"
+    >
+      <span class="custom-bid-label">${labelText} $</span>
       <input
         id="${inputId}"
         class="custom-bid-input"
@@ -2926,11 +2933,11 @@ function customBidControlHTML(inputId, min, max, submitCall){
         max="${max}"
         step="1"
         inputmode="numeric"
-        placeholder="${rangeText}"
+        value="${defaultValue}"
         ${disabled ? 'disabled' : ''}
+        onclick="event.stopPropagation();"
         onkeydown="if(event.key==='Enter'){event.preventDefault(); ${submitCall};}"
       >
-      <button class="btn custom-bid-btn" onclick="${submitCall}" ${disabled ? 'disabled' : ''}>Custom</button>
     </div>`;
 }
 
@@ -3017,7 +3024,7 @@ function render(){
         <div class="auction-controls">
           <button class="btn" onclick="userAutoFillBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
           <button class="btn" onclick="userAutoFillBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
-          ${customBidControlHTML('userAutoFillCustomBidInput', 1, cap, "userAutoFillBidCustom('userAutoFillCustomBidInput')")}
+          ${customBidControlHTML('userAutoFillCustomBidInput', 1, cap, "userAutoFillBidCustom('userAutoFillCustomBidInput')", "Bid")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
         </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
@@ -3054,7 +3061,7 @@ function render(){
         <div class="auction-controls">
           <button class="btn" onclick="userRaise(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
           <button class="btn" onclick="userRaise(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
-          ${customBidControlHTML('userCustomBidInput', nb1, cap, "userRaiseCustom('userCustomBidInput')")}
+          ${customBidControlHTML('userCustomBidInput', nb1, cap, "userRaiseCustom('userCustomBidInput')", actionVerb)}
           <button class="btn pass" onclick="userPass()">${passLabel}</button>
         </div>` : `<div class="waiting">Waiting on bot...</div>`}
       </div>`;
@@ -3613,7 +3620,7 @@ function renderFriendState(){
         <div class="auction-controls">
           <button class="btn" onclick="friendBid(1)" ${1>cap?'disabled':''}>Bid $1</button>
           <button class="btn" onclick="friendBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
-          ${customBidControlHTML('friendAutoFillCustomBidInput', 1, cap, "friendBidCustom('friendAutoFillCustomBidInput')")}
+          ${customBidControlHTML('friendAutoFillCustomBidInput', 1, cap, "friendBidCustom('friendAutoFillCustomBidInput')", "Bid")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
         </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
       </div>`;
@@ -3647,7 +3654,7 @@ function renderFriendState(){
         <div class="auction-controls">
           <button class="btn" onclick="friendBid(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
           <button class="btn" onclick="friendBid(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
-          ${customBidControlHTML('friendCustomBidInput', nb1, cap, "friendBidCustom('friendCustomBidInput')")}
+          ${customBidControlHTML('friendCustomBidInput', nb1, cap, "friendBidCustom('friendCustomBidInput')", actionVerb)}
           <button class="btn pass" onclick="friendPass()">${passLabel}</button>
         </div>` : `<div class="waiting">Waiting on ${oppLabel}...</div>`}
       </div>`;
