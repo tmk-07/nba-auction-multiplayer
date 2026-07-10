@@ -2910,7 +2910,7 @@ function continueButtonLabel(){
 
 function friendContinueButtonLabel(state){
   if(!state) return 'Continue';
-  const totalSlotsLeft = (state.me?.slots || 0) + (state.opponent?.slots || 0);
+  const totalSlotsLeft = (state.teams || [state.me, state.opponent]).reduce((sum, team)=>sum + (team?.slots || 0), 0);
   if(totalSlotsLeft <= 0 || state.draftedCount >= state.orderLength) return 'Finish Draft';
   if(state.hasSkippedPlayers) return 'Continue to Remaining Players';
   const nextRound = state.draftedCount + 1;
@@ -2977,7 +2977,7 @@ function userAutoFillBidCustom(inputId){
 
 function friendBidCustom(inputId){
   const state = FRIEND_STATE;
-  if(!state || !state.auction || state.auction.turn !== state.side) return;
+  if(!state || !state.auction || (!state.auction.timed && state.auction.turn !== state.side)) return;
   const isAutoFill = !!state.auction.autoFill;
   const current = isAutoFill ? 0 : (state.auction.bid || 0);
   const cap = isAutoFill
@@ -2989,6 +2989,7 @@ function friendBidCustom(inputId){
 }
 
 function render(){
+  ensureDuelGameShell();
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
@@ -3116,6 +3117,87 @@ function rosterHtml(side){
   return html;
 }
 
+function posNeedFromSlots(slots){
+  if(!slots) return '';
+  const parts = [];
+  ['G','F','C'].forEach(pos=>{ if(slots[pos] > 0) parts.push(`${slots[pos]} ${pos}`); });
+  return parts.length ? parts.join(', ') : 'full';
+}
+
+function rosterHtmlForPlayers(players=[]){
+  const byPos = {G:[], F:[], C:[]};
+  players.forEach(p=> byPos[p.assignedPos || p.pos]?.push(p));
+  const counts = {G:0, F:0, C:0};
+  let html = '';
+  ROSTER_LAYOUT.forEach(posLabel=>{
+    const p = byPos[posLabel][counts[posLabel]++];
+    if(p){
+      const oop = isOutOfPosition(p, p.assignedPos || p.pos);
+      const oopTag = oop
+        ? `<span style="color:${p.posPenaltyDist===2?'var(--danger)':'var(--gold)'}; font-size:10px;" title="Eligible positions: ${formatPositions(p)}">·OOP</span>`
+        : '';
+      html += `<div class="roster-slot"><span><span class="mono" style="color:var(--chalk-dim);">[${posLabel}]</span> ${p.name} ${oopTag}</span><span class="price">$${p.soldPrice}</span></div>`;
+    } else {
+      html += `<div class="roster-slot empty"><span class="mono" style="color:#4A4C57;">[${posLabel}]</span> Open</div>`;
+    }
+  });
+  return html;
+}
+
+function ensureDuelGameShell(){
+  const scoreboard = document.querySelector('#gameScreen .scoreboard');
+  const rosters = document.querySelector('#gameScreen .rosters');
+  if(scoreboard && !document.getElementById('youBudget')){
+    scoreboard.innerHTML = `
+      <div class="score-card you">
+        <div class="label" id="youBudgetLabel">Your Budget</div>
+        <div class="value mono" id="youBudget">$20</div>
+        <div class="sub" id="youSlots">5 slots open</div>
+      </div>
+      <div class="score-card bot">
+        <div class="label" id="botBudgetLabel">Bot Budget</div>
+        <div class="value mono" id="botBudget">$20</div>
+        <div class="sub" id="botSlots">5 slots open</div>
+      </div>`;
+  }
+  if(rosters && !document.getElementById('youRoster')){
+    rosters.innerHTML = `
+      <div class="roster-col">
+        <h3><span id="youRosterTitle">You</span> <span id="youNeed" class="mono" style="font-size:10.5px; color:var(--chalk-dim); text-transform:none; letter-spacing:0;"></span></h3>
+        <div id="youRoster"></div>
+      </div>
+      <div class="roster-col">
+        <h3><span id="botRosterTitle">Bot</span> <span id="botNeed" class="mono" style="font-size:10.5px; color:var(--chalk-dim); text-transform:none; letter-spacing:0;"></span></h3>
+        <div id="botRoster"></div>
+      </div>`;
+  }
+}
+
+function renderFriendTeamShell(state){
+  const teams = teamsForViewer(state);
+  const scoreboard = document.querySelector('#gameScreen .scoreboard');
+  const rosters = document.querySelector('#gameScreen .rosters');
+  if(scoreboard){
+    scoreboard.innerHTML = teams.map(team=>{
+      const isMe = team.side === state.side;
+      return `<div class="score-card ${isMe ? 'you' : 'bot'}">
+        <div class="label">${isMe ? 'Your' : teamDisplayName(state, team.side, team.label)} Budget</div>
+        <div class="value mono">$${team.budget}</div>
+        <div class="sub">${team.slots} slots open</div>
+      </div>`;
+    }).join('');
+  }
+  if(rosters){
+    rosters.innerHTML = teams.map(team=>{
+      const isMe = team.side === state.side;
+      return `<div class="roster-col">
+        <h3><span>${teamDisplayName(state, team.side, team.label)}</span> <span class="mono" style="font-size:10.5px; color:var(--chalk-dim); text-transform:none; letter-spacing:0;">(${posNeedFromSlots(team.posSlots)})</span></h3>
+        <div>${rosterHtmlForPlayers(team.roster || [])}</div>
+      </div>`;
+    }).join('');
+  }
+}
+
 
 /* ---------------- LANDING / MULTIPLAYER CLIENT ---------------- */
 let APP_MODE = 'home';
@@ -3124,6 +3206,7 @@ let FRIEND_STATE = null;
 let ACTIVE_COUNT_TIMER = null;
 let ACTIVE_PRESENCE_TIMER = null;
 let FRIEND_MATCH_TYPE = 'friend';
+let FRIEND_AUCTION_COUNTDOWN_TIMER = null;
 const ACTIVE_SESSION_ID = (()=>{
   const key = 'STARTING_FIVE_ACTIVE_SESSION_ID';
   let id = sessionStorage.getItem(key);
@@ -3200,6 +3283,33 @@ function opponentDisplayName(state){
   return name || 'Opponent';
 }
 
+function readFriendRoomSettings(){
+  const playerSelect = document.getElementById('advancedPlayerCountSelect');
+  const budgetInput = document.getElementById('advancedBudgetInput');
+  const maxTeams = Math.max(2, Math.min(5, Number(playerSelect ? playerSelect.value : 2) || 2));
+  const budget = Math.max(5, Math.min(99, Math.floor(Number(budgetInput ? budgetInput.value : 20) || 20)));
+  if(budgetInput) budgetInput.value = String(budget);
+  return {maxTeams, budget};
+}
+
+function teamDisplayName(state, side, fallback='Opponent'){
+  if(!state) return fallback;
+  if(state.pretendBot && side === 'guest') return 'Bot';
+  const team = (state.teams || []).find(t=>t.side === side);
+  const clean = cleanPlayerName(team && team.name);
+  if(side === state.side) return 'You';
+  return clean || (team && team.label) || fallback;
+}
+
+function teamsForViewer(state){
+  const teams = state.teams || [state.me, state.opponent].filter(Boolean);
+  return teams.slice().sort((a,b)=>{
+    if(a.side === state.side) return -1;
+    if(b.side === state.side) return 1;
+    return 0;
+  });
+}
+
 function setCustomPoolStatus(text, isError=false){
   const el = document.getElementById('customPoolStatus');
   if(el){
@@ -3238,10 +3348,12 @@ async function createCustomRoom(){
   const btn = document.getElementById('createCustomRoomBtn');
   const input = document.getElementById('customDraftOrderInput');
   const pretendBot = !!(document.getElementById('pretendBotToggle') && document.getElementById('pretendBotToggle').checked);
+  const settings = readFriendRoomSettings();
   const names = normalizeCustomDraftNames(input ? input.value : '');
 
-  if(names.length < 10){
-    setCustomPoolStatus(`Add at least 10 player names. Current count: ${names.length}.`, true);
+  const minNames = settings.maxTeams * ROSTER_LAYOUT.length;
+  if(names.length < minNames){
+    setCustomPoolStatus(`Add at least ${minNames} player names. Current count: ${names.length}.`, true);
     return;
   }
 
@@ -3253,7 +3365,7 @@ async function createCustomRoom(){
     const res = await fetch(apiUrl('/api/room/create'), {
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({customOrder:names, pretendBot})
+      body:JSON.stringify({customOrder:names, pretendBot, ...settings})
     });
     if(!res.ok) throw new Error(await res.text());
     const data = await res.json();
@@ -3275,6 +3387,7 @@ async function createCustomRoom(){
 
 function showLanding(){
   APP_MODE = 'home';
+  stopFriendAuctionCountdown();
   disconnectFriend();
   G = null;
   document.getElementById('logBox').innerHTML = '';
@@ -3376,6 +3489,7 @@ window.addEventListener('beforeunload', ()=>{
 });
 
 function disconnectFriend(){
+  stopFriendAuctionCountdown();
   if(FRIEND_WS){
     try{ FRIEND_WS.close(); }catch(e){}
   }
@@ -3386,13 +3500,18 @@ function disconnectFriend(){
 async function createFriendRoom(){
   setFriendStatus('Creating room...');
   try{
-    const res = await fetch(apiUrl('/api/room/create'), {method:'POST'});
+    const settings = readFriendRoomSettings();
+    const res = await fetch(apiUrl('/api/room/create'), {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(settings)
+    });
     if(!res.ok) throw new Error(await res.text());
     const data = await res.json();
     const codeEl = document.getElementById('roomCodeDisplay');
     codeEl.textContent = data.code;
     codeEl.classList.remove('hidden');
-    connectFriendRoom(data.code, 'host');
+    connectFriendRoom(data.code, 'host', 'friend', settings);
   }catch(err){
     setFriendStatus(`Could not create room. ${err.message || err}`, true);
   }
@@ -3414,7 +3533,7 @@ async function checkRoomBeforeJoin(code){
     if(data.full){
       return {ok:false, message:'That room is already full. Ask your friend to create a new game.'};
     }
-    return {ok:true};
+    return {ok:true, data};
   }catch(err){
     return {ok:false, message:'Could not check that room. Make sure the multiplayer server is live.'};
   }
@@ -3440,7 +3559,7 @@ async function joinFriendRoom(){
   }
 
   document.getElementById('roomCodeDisplay').classList.remove('hidden');
-  connectFriendRoom(code, 'guest');
+  connectFriendRoom(code, check.data.availableSide || 'guest');
 }
 
 async function findOnlineOpponent(){
@@ -3519,16 +3638,54 @@ function sendFriendAction(type, payload={}){
 function friendBid(amount){ sendFriendAction('bid', {amount}); }
 function friendPass(){ sendFriendAction('pass'); }
 function friendReveal(){ sendFriendAction('reveal'); }
-function friendRematch(){ sendFriendAction('rematch'); }
+function friendPlayAgain(){ sendFriendAction('playAgain'); }
+function friendRematch(){ friendPlayAgain(); }
+function friendBotControl(action){ sendFriendAction('botControl', {action}); }
+
+function friendBotControlsHTML(state){
+  const controls = state && state.botControls;
+  if(!controls || (!controls.canAdd && !controls.canRemove)) return '';
+  const buttons = [];
+  if(controls.canAdd) buttons.push(`<button class="btn room-bot-btn" onclick="friendBotControl('add')">Add Bot</button>`);
+  if(controls.canRemove) buttons.push(`<button class="btn room-bot-btn pass" onclick="friendBotControl('remove')">Remove Bot</button>`);
+  return `<div class="room-bot-actions">${buttons.join('')}</div>`;
+}
+
+function formatAuctionCountdown(deadlineAt){
+  const remaining = Math.max(0, Math.ceil((Number(deadlineAt || 0) - Date.now()) / 1000));
+  return `0:${String(remaining).padStart(2, '0')} sec`;
+}
+
+function stopFriendAuctionCountdown(){
+  if(FRIEND_AUCTION_COUNTDOWN_TIMER){
+    clearInterval(FRIEND_AUCTION_COUNTDOWN_TIMER);
+    FRIEND_AUCTION_COUNTDOWN_TIMER = null;
+  }
+}
+
+function startFriendAuctionCountdown(deadlineAt){
+  stopFriendAuctionCountdown();
+  const tick = ()=>{
+    const el = document.getElementById('friendAuctionCountdown');
+    if(!el){
+      stopFriendAuctionCountdown();
+      return;
+    }
+    el.textContent = formatAuctionCountdown(deadlineAt);
+  };
+  tick();
+  FRIEND_AUCTION_COUNTDOWN_TIMER = setInterval(tick, 250);
+}
 
 function applyFriendStateToG(state){
   const me = state.me;
   const opp = state.opponent;
+  const teams = state.teams || [me, opp].filter(Boolean);
   G = {
-    budgets:{user:me.budget, bot:opp.budget},
-    slots:{user:me.slots, bot:opp.slots},
-    posSlots:{user:me.posSlots, bot:opp.posSlots},
-    rosters:{user:me.roster || [], bot:opp.roster || []},
+    budgets:Object.fromEntries(teams.map(t=>[t.side, t.budget])),
+    slots:Object.fromEntries(teams.map(t=>[t.side, t.slots])),
+    posSlots:Object.fromEntries(teams.map(t=>[t.side, t.posSlots])),
+    rosters:Object.fromEntries(teams.map(t=>[t.side, t.roster || []])),
     order:[],
     auction:null,
     log:state.log || [],
@@ -3542,11 +3699,16 @@ function renderFriendLog(state){
   const mySide = state.side;
   const oppSide = mySide === 'host' ? 'guest' : 'host';
   const oppName = opponentDisplayName(state);
+  const teams = state.teams || [];
   box.innerHTML = '';
   (state.log || []).forEach(entry=>{
     const d = document.createElement('div');
     d.className = entry.who === mySide ? 'you-log' : (entry.who === oppSide ? 'bot-log' : 'sys-log');
     let text = entry.text || '';
+    teams.forEach(team=>{
+      const display = teamDisplayName(state, team.side, team.label);
+      text = text.replace(new RegExp(`\\b${team.label}\\b`, 'g'), display);
+    });
     text = text.replace(/\bHost\b/g, mySide === 'host' ? 'You' : oppName);
     text = text.replace(/\bGuest\b/g, mySide === 'guest' ? 'You' : oppName);
     if(entry.who === mySide){
@@ -3567,6 +3729,7 @@ function renderFriendLog(state){
 function renderFriendState(){
   const state = FRIEND_STATE;
   if(!state) return;
+  stopFriendAuctionCountdown();
   if(state.over && state.results){ renderFriendResults(state); return; }
 
   applyFriendStateToG(state);
@@ -3576,11 +3739,7 @@ function renderFriendState(){
   document.getElementById('gameScreen').classList.remove('hidden');
   document.getElementById('resultsScreen').classList.add('hidden');
   const bottomNavBtn = document.getElementById('botExitBtn');
-
-  document.getElementById('youBudget').textContent = '$'+state.me.budget;
-  document.getElementById('botBudget').textContent = '$'+state.opponent.budget;
-  document.getElementById('youSlots').textContent = state.me.slots+' slots open';
-  document.getElementById('botSlots').textContent = state.opponent.slots+' slots open';
+  renderFriendTeamShell(state);
 
   const banner = document.getElementById('profileBanner');
   if(banner){
@@ -3588,7 +3747,10 @@ function renderFriendState(){
     banner.innerHTML = '';
     banner.removeAttribute('style');
   }
-  const opponentConnected = state.connected && state.connected[state.opponent.side];
+  const teams = state.teams || [state.me, state.opponent].filter(Boolean);
+  const missingTeams = teams.filter(team=>team.joined && !(state.connected && state.connected[team.side]));
+  const disconnectedTeam = missingTeams.find(team=>team.side !== state.side);
+  const opponentConnected = !disconnectedTeam;
   if(bottomNavBtn){
     bottomNavBtn.textContent = '← Exit';
     bottomNavBtn.classList.toggle('hidden', !(state.status === 'waiting' || !opponentConnected));
@@ -3596,19 +3758,24 @@ function renderFriendState(){
 
   const aArea = document.getElementById('auctionArea');
   if(state.status !== 'waiting' && !opponentConnected){
-    aArea.innerHTML = `<div class="auction-panel" style="text-align:center; border-color:var(--danger);">
-      <div style="color:var(--danger); font-weight:700; margin-bottom:8px;">${oppLabel} disconnected</div>
-      <div style="color:var(--chalk-dim);">The game is paused until ${oppLabel} reconnects with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
+    const disconnectedLabel = teamDisplayName(state, disconnectedTeam.side, disconnectedTeam.label);
+    aArea.innerHTML = `<div class="auction-panel room-code-panel" style="border-color:var(--danger);">
+      <div style="color:var(--danger); font-weight:700; margin-bottom:8px;">${disconnectedLabel} disconnected</div>
+      <div style="color:var(--chalk-dim);">The game is paused until they reconnect with room code <span class="mono" style="color:var(--gold);">${state.roomCode}</span>.</div>
+      ${friendBotControlsHTML(state)}
     </div>`;
   } else if(state.status === 'waiting'){
     const isOnlineMatch = state.matchType === 'online' || FRIEND_MATCH_TYPE === 'online';
+    const joinedCount = teams.filter(team=>team.joined).length;
+    const remaining = Math.max(0, (state.maxTeams || 2) - joinedCount);
     aArea.innerHTML = isOnlineMatch
       ? `<div class="auction-panel finding-opponent-panel"><div class="finding-opponent-text">Finding an opponent…</div></div>`
-      : `<div class="auction-panel" style="text-align:center;"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to ${state.pretendBot ? 'your Bot' : 'your friend'}.</div><div class="room-code">${state.roomCode}</div></div>`;
+      : `<div class="auction-panel room-code-panel"><div style="color:var(--chalk-dim); margin-bottom:12px;">Send this room code to ${state.pretendBot ? 'your Bot' : 'your friends'}.</div><div class="room-code">${state.roomCode}</div><div style="color:var(--chalk-dim); margin-top:10px;">Waiting for ${remaining} more ${remaining === 1 ? 'player' : 'players'}.</div>${friendBotControlsHTML(state)}</div>`;
   } else if(state.auction && state.auction.autoFill){
     const player = state.auction.player;
     const myTurn = state.auction.turn === state.side;
-    const sideLabel = myTurn ? 'your required pick' : `${oppLabel} selecting required player`;
+    const turnLabel = teamDisplayName(state, state.auction.turn, 'Opponent');
+    const sideLabel = myTurn ? 'your required pick' : `${turnLabel} selecting required player`;
     const cap = state.me.requiredPickMaxBid ?? Math.max(1, state.me.maxBid);
     aArea.innerHTML = `
       <div class="auction-panel">
@@ -3629,19 +3796,30 @@ function renderFriendState(){
           <button class="btn" onclick="friendBid(2)" ${2>cap?'disabled':''}>Bid $2</button>
           ${customBidControlHTML('friendAutoFillCustomBidInput', 1, cap, "friendBidCustom('friendAutoFillCustomBidInput')", "Bid")}
           <button class="btn pass" disabled title="Required pick because the other roster is full">Pass</button>
-        </div>` : `<div class="waiting">${oppLabel} selecting required player</div>`}
+        </div>` : `<div class="waiting">${turnLabel} selecting required player</div>`}
       </div>`;
   } else if(state.auction){
     const player = state.auction.player;
-    const myTurn = state.auction.turn === state.side;
+    const isTimedAuction = !!state.auction.timed;
+    const myTurn = isTimedAuction ? true : state.auction.turn === state.side;
     const noBidYet = !state.auction.bidder;
     const nb1 = state.auction.bid+1, nb2 = state.auction.bid+2;
     const cap = state.me.maxBid;
     const bidLabel = noBidYet ? 'No bid yet' : '$'+state.auction.bid;
-    const otherDeclined = noBidYet && state.auction.openDeclines && state.auction.openDeclines[state.opponent.side];
-    const holderLabel = noBidYet
-      ? (otherDeclined ? `${oppLabel} passed; your chance to open` : (myTurn ? 'your first action' : `${oppLabel} first action`))
-      : `held by ${state.auction.bidder===state.side?'you':oppLabel}`;
+    const localDeadlineAt = state.auction.deadlineRemainingMs != null
+      ? Date.now() + state.auction.deadlineRemainingMs
+      : state.auction.deadlineAt;
+    const userPassed = !!(state.auction.openDeclines && state.auction.openDeclines[state.side]);
+    const userHighBidder = state.auction.bidder === state.side;
+    const declinedTeams = teams.filter(team=>team.side !== state.side && state.auction.openDeclines && state.auction.openDeclines[team.side]);
+    const turnLabel = teamDisplayName(state, state.auction.turn, 'Opponent');
+    const bidderLabel = state.auction.bidder === state.side ? 'you' : teamDisplayName(state, state.auction.bidder, 'Opponent');
+    const otherDeclined = noBidYet && declinedTeams.length > 0;
+    const holderLabel = isTimedAuction
+      ? (noBidYet ? `closes in <span id="friendAuctionCountdown" class="auction-countdown">${formatAuctionCountdown(localDeadlineAt)}</span>` : `held by ${bidderLabel} · closes in <span id="friendAuctionCountdown" class="auction-countdown">${formatAuctionCountdown(localDeadlineAt)}</span>`)
+      : noBidYet
+      ? (otherDeclined && myTurn ? `${declinedTeams.map(team=>teamDisplayName(state, team.side, team.label)).join(', ')} passed; your chance to open` : (myTurn ? 'your first action' : `${turnLabel} first action`))
+      : `held by ${bidderLabel}`;
     const actionVerb = noBidYet ? 'Open at' : 'Raise to';
     const passLabel = noBidYet ? (otherDeclined ? 'Pass / Send Back' : 'Pass') : 'Pass';
     aArea.innerHTML = `
@@ -3657,14 +3835,15 @@ function renderFriendState(){
             <div class="who">${holderLabel}</div>
           </div>
         </div>
-        ${myTurn ? `
+        ${myTurn && !userPassed && !userHighBidder && state.me.slots > 0 ? `
         <div class="auction-controls">
           <button class="btn" onclick="friendBid(1)" ${nb1>cap?'disabled':''}>${actionVerb} $${nb1}</button>
           <button class="btn" onclick="friendBid(2)" ${nb2>cap?'disabled':''}>${actionVerb} $${nb2}</button>
           ${customBidControlHTML('friendCustomBidInput', nb1, cap, "friendBidCustom('friendCustomBidInput')", actionVerb)}
           <button class="btn pass" onclick="friendPass()">${passLabel}</button>
-        </div>` : `<div class="waiting">Waiting on ${oppLabel}...</div>`}
+        </div>` : `<div class="waiting">${state.me.slots <= 0 ? 'Waiting on others...' : (userHighBidder ? 'You hold the high bid.' : (userPassed ? 'You passed on this player.' : `Waiting on ${turnLabel}...`))}</div>`}
       </div>`;
+    if(isTimedAuction && localDeadlineAt) startFriendAuctionCountdown(localDeadlineAt);
   } else {
     const buttonLabel = friendContinueButtonLabel(state);
     aArea.innerHTML = `
@@ -3673,14 +3852,11 @@ function renderFriendState(){
       </div>`;
   }
 
-  document.getElementById('youNeed').textContent = '('+posNeedStr('user')+')';
-  document.getElementById('botNeed').textContent = '('+posNeedStr('bot')+')';
-  document.getElementById('youRoster').innerHTML = rosterHtml('user');
-  document.getElementById('botRoster').innerHTML = rosterHtml('bot');
   renderFriendLog(state);
 }
 
 function renderFriendResults(state){
+  stopFriendAuctionCountdown();
   applyFriendStateToG(state);
   document.getElementById('setupScreen').classList.add('hidden');
   document.getElementById('gameScreen').classList.add('hidden');
@@ -3688,56 +3864,72 @@ function renderFriendResults(state){
   rs.classList.remove('hidden');
 
   const r = state.results;
-  const oppLabel = opponentDisplayName(state);
-  const myScore = r.scores[state.side];
-  const oppScore = r.scores[state.opponent.side];
-  const myAxes = r.axes[state.side];
-  const oppAxes = r.axes[state.opponent.side];
-  const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft! 🏆' : `${oppLabel} wins the draft.`);
+  const teams = teamsForViewer(state);
+  const teamName = side => teamDisplayName(state, side, 'Opponent');
+  const winnerLabel = r.winner === 'tie' ? "It's a tie!" : (r.winner === state.side ? 'You win the draft!' : `${teamName(r.winner)} wins the draft!`);
   const winnerClass = r.winner === state.side || r.winner === 'tie' ? 'you' : 'bot';
-  const rematch = state.rematch || {requested:{}, connected:{}};
-  const myRequested = !!(rematch.requested && rematch.requested[state.side]);
-  const oppRequested = !!(rematch.requested && rematch.requested[state.opponent.side]);
-  const oppConnected = !!(state.connected && state.connected[state.opponent.side]);
-  const rematchStatus = myRequested
-    ? (oppRequested ? 'Starting rematch...' : (oppConnected ? `Rematch requested. Waiting for ${oppLabel}...` : `Rematch requested. Waiting for ${oppLabel} to reconnect...`))
-    : (oppRequested ? `${oppLabel} wants a rematch.` : (oppConnected ? 'Start a fresh draft with the same room code.' : `${oppLabel} disconnected. They can reconnect with the same room code before a rematch.`));
-  const rematchButtonText = myRequested ? 'Rematch Requested' : (oppRequested ? 'Accept Rematch' : 'Rematch');
+  const playAgainStatus = `Start a fresh lobby with room code ${state.roomCode}. Anyone still connected stays in the same room.`;
 
-  LAST_SHARE_RESULT = {
-    winnerLabel,
-    winnerClass,
-    myRatingLabel:'Your Team Rating',
-    oppRatingLabel:`${oppLabel} Team Rating`,
-    myScore,
-    oppScore,
-    labels:['Scoring','Rebounding','Playmaking','Star Power','Defense'],
-    myAxes,
-    oppAxes,
-    leftTitle:'Your Roster',
-    rightTitle:`${oppLabel} Roster`,
-    leftRows:r.rows[state.side],
-    rightRows:r.rows[state.opponent.side],
-    legendOpponent:oppLabel
-  };
+  LAST_SHARE_RESULT = null;
+
+  const rankCard = (title, ranks=[]) => `
+    <div class="category-rank-card">
+      <h3>${title}</h3>
+      <ol>
+        ${ranks.map(item=>`<li class="${item.side === state.side ? 'user-rank' : ''}"><span><em>#${item.rank}</em> ${teamName(item.side)}</span><b>${item.score}</b></li>`).join('')}
+      </ol>
+    </div>`;
+  const scoreCards = [
+    rankCard('Team Rating', r.rankings?.total || []),
+    ...Object.values(r.rankings?.categories || {}).map(category=>rankCard(category.label, category.ranks))
+  ].join('');
+  const rosterCards = teams.map(team=>`
+    <div class="team-results-card ${team.side === state.side ? 'you' : ''}">
+      <h3>${teamName(team.side)}</h3>
+      <table>
+        <thead><tr><th>Slot</th><th>Player</th><th class="num">Paid</th></tr></thead>
+        <tbody>
+          ${(r.rows[team.side] || []).map(row=>`<tr><td class="mono roster-result-slot">${row.pos}</td><td class="roster-result-player"><span class="scroll-name">${row.name}</span></td><td class="num roster-result-paid">$${row.price}</td></tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+  const bidRowsHtml = (bids, offset=0) => bids.map((bid, idx)=>`
+    <tr>
+      <td class="rank-cell">#${offset + idx + 1}</td>
+      <td class="bid-result-player"><span class="scroll-name">${bid.name}</span></td>
+      <td class="bid-result-team"><span class="scroll-name">${teamName(bid.side)}</span></td>
+      <td class="num">$${bid.price}</td>
+    </tr>`).join('');
+  const bidOrder = r.bidOrder || [];
+  const bidSplit = Math.ceil(bidOrder.length / 2);
+  const bidColumns = [
+    {rows:bidOrder.slice(0, bidSplit), offset:0},
+    {rows:bidOrder.slice(bidSplit), offset:bidSplit}
+  ].filter(col=>col.rows.length);
 
   rs.innerHTML = `
     <div class="results">
       <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
-      <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
-        <div class="score-card you"><div class="label">Your Team Rating</div><div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
-        <div class="score-card bot"><div class="label">${oppLabel} Team Rating</div><div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div></div>
+      <div class="score-rank-grid">${scoreCards}</div>
+      <h2>Rosters</h2>
+      <div class="team-results-grid">${rosterCards}</div>
+      <h2 class="share-exclude">Highest Bids</h2>
+      <div class="bid-order-wrap share-exclude">
+        <div class="bid-order-grid">
+          ${bidColumns.map(col=>`
+            <table>
+              <thead><tr><th>Rank</th><th>Player</th><th>Team</th><th class="num">Bid</th></tr></thead>
+              <tbody>${bidRowsHtml(col.rows, col.offset)}</tbody>
+            </table>
+          `).join('')}
+        </div>
       </div>
-      <h2>Team Shape</h2>
-      ${buildRadarSVG(['Scoring','Rebounding','Playmaking','Star Power','Defense'], myAxes, oppAxes)}
-      <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;"><span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> ${oppLabel}</div>
-      ${pairedRosterTable('Your Roster', `${oppLabel} Roster`, r.rows[state.side], r.rows[state.opponent.side])}
       <div class="results-actions">
-        <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendRematch()" ${myRequested?'disabled':''}>${rematchButtonText}</button>
+        <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendPlayAgain()">Play Again</button>
         <button class="btn share-results-btn" onclick="openShareModal()">Share Results</button>
         <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>
       </div>
-      <div class="rematch-status">${rematchStatus}</div>
+      <div class="rematch-status">${playAgainStatus}</div>
     </div>`;
 }
 
@@ -3786,6 +3978,7 @@ function buildShareExportNode(){
   if(!liveResults) throw new Error('No results are available to share yet.');
 
   const clone = liveResults.cloneNode(true);
+  clone.querySelectorAll('.share-exclude').forEach(el=>el.remove());
 
   const winnerBanner = clone.querySelector('.winner-banner');
   const scoreboard = clone.querySelector('.scoreboard');
@@ -3793,6 +3986,33 @@ function buildShareExportNode(){
   const svg = clone.querySelector('svg');
   const legend = svg ? svg.nextElementSibling : null;
   const pairedRosters = clone.querySelector('.paired-rosters');
+  const multiTeamResults = !!clone.querySelector('.score-rank-grid');
+
+  if(multiTeamResults){
+    const brand = document.createElement('div');
+    brand.className = 'results-brand';
+    brand.innerHTML = '<img class="results-brand-logo" src="logo.png" alt="Starting Five logo"><span>Starting Five</span>';
+    clone.prepend(brand);
+
+    const urlTag = document.createElement('div');
+    urlTag.className = 'results-url';
+    urlTag.textContent = 'startingfive.tkimify.com';
+    clone.appendChild(urlTag);
+
+    const previewBody = document.createElement('div');
+    previewBody.className = 'share-snapshot-sample multi-team-share-snapshot';
+
+    const previewWrap = document.createElement('div');
+    previewWrap.className = 'wrap';
+
+    const previewResultsScreen = document.createElement('div');
+    previewResultsScreen.id = 'resultsScreen';
+    previewResultsScreen.appendChild(clone);
+
+    previewWrap.appendChild(previewResultsScreen);
+    previewBody.appendChild(previewWrap);
+    return previewBody;
+  }
 
   // Remove the Team Shape heading from the PNG export clone only
   if(heading) heading.remove();
@@ -3988,6 +4208,11 @@ function closeAdvancedSettings(){
   modal.setAttribute('aria-hidden', 'true');
 }
 
+function createRoomFromAdvancedSettings(){
+  closeAdvancedSettings();
+  createFriendRoom();
+}
+
 document.getElementById('botModeBtn').addEventListener('click', newGame);
 document.getElementById('botExitBtn').addEventListener('click', showLanding);
 document.getElementById('friendModeBtn').addEventListener('click', showFriendPanel);
@@ -3997,7 +4222,7 @@ document.getElementById('findOpponentBtn').addEventListener('click', findOnlineO
 document.getElementById('backHomeBtn').addEventListener('click', showLanding);
 document.getElementById('advancedSettingsBtn').addEventListener('click', openAdvancedSettings);
 document.getElementById('advancedSettingsCloseBtn').addEventListener('click', closeAdvancedSettings);
-document.getElementById('advancedSettingsDoneBtn').addEventListener('click', closeAdvancedSettings);
+document.getElementById('advancedSettingsDoneBtn').addEventListener('click', createRoomFromAdvancedSettings);
 document.getElementById('advancedSettingsModal').addEventListener('click', (e)=>{ if(e.target.id === 'advancedSettingsModal') closeAdvancedSettings(); });
 document.getElementById('createCustomRoomBtn').addEventListener('click', createCustomRoom);
 document.getElementById('customPoolBackBtn').addEventListener('click', showFriendPanel);

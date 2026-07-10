@@ -1970,6 +1970,49 @@ function samplePlayers(tiers, count, selectedNames){
   const options = shuffle(MASTER.filter(p=>tiers.includes(p.tier) && !selectedNames.has(p.name)));
   return options.slice(0,count);
 }
+function tierFallbackBuckets(tiers){
+  const key = tiers.slice().sort().join('|');
+  if(key === 'superstar') return [['star'], ['starter','role']];
+  if(key === 'bench') return [['role'], ['starter']];
+  if(key === 'star') return [['superstar'], ['starter','role']];
+  if(key === 'star|superstar') return [['starter','role'], ['bench']];
+  if(key === 'bench|role') return [['starter'], ['star']];
+  if(key === 'role|starter') return [['bench'], ['star']];
+  return [['starter','role'], ['star'], ['bench'], ['superstar']];
+}
+function samplePlayersWithFallback(tiers, count, selectedNames){
+  const selected = [];
+  const takeFrom = (bucket, remaining)=>{
+    const picks = samplePlayers(bucket, remaining, selectedNames);
+    picks.forEach(p=>{
+      selected.push(p);
+      selectedNames.add(p.name);
+    });
+  };
+
+  takeFrom(tiers, count);
+  tierFallbackBuckets(tiers).forEach(bucket=>{
+    if(selected.length < count) takeFrom(bucket, count - selected.length);
+  });
+  return selected;
+}
+function scaledProfileGroups(profile, targetCount){
+  const baseTotal = profile.groups.reduce((sum, group)=>sum + group.count, 0);
+  const scaled = profile.groups.map((group, idx)=>{
+    const raw = group.count / baseTotal * targetCount;
+    return {...group, idx, raw, count:Math.floor(raw)};
+  });
+  let remaining = targetCount - scaled.reduce((sum, group)=>sum + group.count, 0);
+  scaled
+    .slice()
+    .sort((a,b)=>(b.raw - b.count) - (a.raw - a.count) || a.idx - b.idx)
+    .forEach(group=>{
+      if(remaining <= 0) return;
+      group.count += 1;
+      remaining -= 1;
+    });
+  return scaled.sort((a,b)=>a.idx-b.idx).map(({idx, raw, ...group})=>group);
+}
 function normalizedPlayerName(name){
   return String(name || '')
     .trim()
@@ -2034,21 +2077,32 @@ function buildCustomPoolResult(customOrder){
     }
   };
 }
-function buildPool(){
+function buildPool(minPlayers=10){
   const profile = pick(POOL_PROFILES);
   const selected = [];
   const selectedNames = new Set();
-  profile.groups.forEach(group=>{
-    const picks = samplePlayers(group.tiers, group.count, selectedNames);
-    picks.forEach(p=>{ selected.push(p); selectedNames.add(p.name); });
+  const needed = Math.max(10, Math.min(MASTER.length, Number(minPlayers) || 10));
+  scaledProfileGroups(profile, needed).forEach(group=>{
+    const picks = samplePlayersWithFallback(group.tiers, group.count, selectedNames);
+    picks.forEach(p=>{ selected.push(p); });
   });
+  if(selected.length < needed){
+    shuffle(MASTER.filter(p=>!selectedNames.has(p.name))).slice(0, needed - selected.length).forEach(p=>{
+      selected.push(p);
+      selectedNames.add(p.name);
+    });
+  }
   const order = shuffle(selected).map(playerToDraftEntry);
   return {profile, order};
 }
 
 const POS_INDEX = {G:0, F:1, C:2};
 const ROSTER_LAYOUT = ['G','G','F','F','C'];
+const FRIEND_SIDES = ['host','guest','player3','player4','player5'];
+const DEFAULT_BUDGET = 20;
 const NO_OPEN_BID_AUTOFILL_THRESHOLD = 4;
+const MULTI_TEAM_AUCTION_TIMEOUT_MS = 3000;
+const BOT_ACTION_DELAY_MS = 650;
 function eligiblePositions(player){
   return Array.isArray(player.positions) && player.positions.length ? player.positions : [player.pos];
 }
@@ -2141,20 +2195,212 @@ function teamAxes(game, side, maxes){
     clamp(Math.round(sumDef/maxes.def*100),0,100),
   ];
 }
+
+function gameSides(game){ return game.sides || ['host','guest']; }
+function makeSideMap(sides, valueFactory){ return Object.fromEntries(sides.map(side=>[side, valueFactory(side)])); }
+function normalizeRoomOptions(options={}){
+  const maxTeams = clamp(Math.floor(Number(options.maxTeams || 2)), 2, 5);
+  const budget = clamp(Math.floor(Number(options.budget || DEFAULT_BUDGET)), ROSTER_LAYOUT.length, 99);
+  return {maxTeams, budget};
+}
+function joinedSides(game){
+  const sides = gameSides(game);
+  if(game.joined) return sides.filter(side=>game.joined[side]);
+  return sides;
+}
+function botSides(game){
+  const sides = gameSides(game);
+  return sides.filter(side=>game.botSides && game.botSides[side]);
+}
+function refreshBotNames(game){
+  const sides = gameSides(game);
+  if(!game.names) game.names = makeSideMap(sides, ()=>'');
+  botSides(game).forEach((side, idx)=>{
+    game.names[side] = `Bot ${idx + 1}`;
+  });
+}
+function sidesWithSlots(game){ return gameSides(game).filter(side=>game.slots[side] > 0); }
+function nextSide(game, currentSide, predicate=()=>true){
+  const sides = gameSides(game);
+  const start = Math.max(0, sides.indexOf(currentSide));
+  for(let offset=1; offset<=sides.length; offset++){
+    const side = sides[(start + offset) % sides.length];
+    if(predicate(side)) return side;
+  }
+  return null;
+}
+function allExpectedTeamsJoined(game){
+  return joinedSides(game).length >= (game.maxTeams || 2);
+}
+function isMultiTeamAuction(game){
+  return (game.maxTeams || gameSides(game).length || 2) > 2;
+}
+function activeAuctionSides(game){
+  return gameSides(game).filter(side=>game.slots[side] > 0);
+}
+function bumpTimedAuctionDeadline(game){
+  if(game && game.auction && !game.auction.autoFill && isMultiTeamAuction(game)){
+    game.auction.deadlineAt = Date.now() + MULTI_TEAM_AUCTION_TIMEOUT_MS;
+  }
+}
+function nextOpenSide(game){
+  const sides = gameSides(game);
+  if(!game.joined) return game.guestJoined ? null : 'guest';
+  return sides.find(side=>!(game.joined && game.joined[side])) || null;
+}
+function nextReconnectSide(game, connected){
+  const sides = gameSides(game);
+  if(!game.joined) return null;
+  return sides.find(side=>game.joined[side] && !(connected && connected[side]) && !(game.botSides && game.botSides[side] && !game.botReplaced?.[side])) || null;
+}
+function nextBotCoverSide(game, connected){
+  const sides = gameSides(game);
+  if(!game.joined) return null;
+  return sides.find(side=>game.joined[side] && !(connected && connected[side]) && !(game.botSides && game.botSides[side])) || null;
+}
+function teamLabel(side){
+  if(side === 'host') return 'Host';
+  if(side === 'guest') return 'Guest';
+  const match = String(side).match(/^player(\d+)$/);
+  return match ? `Player ${match[1]}` : side;
+}
+
+function botControlState(game, connected){
+  if(!game || (game.matchType || 'friend') === 'online' || game.over) return {canAdd:false, canRemove:false, botCount:0};
+  const bots = botSides(game);
+  const openSide = nextOpenSide(game);
+  const coverSide = nextBotCoverSide(game, connected);
+  const replaceableBot = bots.find(side=>game.botReplaced && game.botReplaced[side]);
+  return {
+    canAdd: !!(openSide || coverSide),
+    canRemove: game.status === 'waiting' ? bots.length > 0 : !!replaceableBot,
+    botCount: bots.length
+  };
+}
+
+function addBotToGame(game, connected){
+  const sides = gameSides(game);
+  if(!game.botSides) game.botSides = makeSideMap(sides, ()=>false);
+  if(!game.botReplaced) game.botReplaced = makeSideMap(sides, ()=>false);
+  if(!game.botOriginalNames) game.botOriginalNames = makeSideMap(sides, ()=>'');
+  if(!game.joined) game.joined = makeSideMap(sides, s=>s === 'host' || s === 'guest');
+
+  const target = nextOpenSide(game) || nextBotCoverSide(game, connected);
+  if(!target || game.botSides[target]) return false;
+
+  const replacedHuman = !!game.joined[target];
+  if(replacedHuman && game.names && game.names[target]) game.botOriginalNames[target] = game.names[target];
+  game.botSides[target] = true;
+  game.botReplaced[target] = replacedHuman;
+  game.joined[target] = true;
+  if(target === 'guest') game.guestJoined = true;
+  refreshBotNames(game);
+  addLog(game, 'sys', `${game.names[target]} joined.`);
+
+  if(allExpectedTeamsJoined(game) && game.status === 'waiting'){
+    game.status = 'active';
+    addLog(game, 'sys', `${game.maxTeams || 2} teams joined. The draft is ready.`);
+  }
+  return true;
+}
+
+function removeBotFromGame(game){
+  const bots = botSides(game);
+  if(!bots.length) return false;
+  const target = game.status === 'waiting'
+    ? bots[bots.length - 1]
+    : bots.slice().reverse().find(side=>game.botReplaced && game.botReplaced[side]);
+  if(!target) return false;
+
+  const wasReplacement = !!(game.botReplaced && game.botReplaced[target]);
+  const botName = game.names?.[target] || 'Bot';
+  game.botSides[target] = false;
+  if(game.botReplaced) game.botReplaced[target] = false;
+  if(wasReplacement){
+    game.names[target] = (game.botOriginalNames && game.botOriginalNames[target]) || '';
+    addLog(game, 'sys', `${botName} removed. Waiting for ${label(target)} to reconnect.`);
+  }else if(game.status === 'waiting'){
+    game.joined[target] = false;
+    game.names[target] = '';
+    if(target === 'guest') game.guestJoined = false;
+    addLog(game, 'sys', `${botName} removed.`);
+  }else{
+    game.names[target] = '';
+  }
+  refreshBotNames(game);
+  return true;
+}
+
+function botBidTarget(game, side, player){
+  const cap = maxBid(game, side);
+  if(cap <= 0 || !player) return 0;
+  const startingBudget = game.startingBudgets?.[side] || DEFAULT_BUDGET;
+  const slots = game.slots[side] || 1;
+  if(slots <= 1) return cap;
+  const positionNeed = game.posSlots?.[side] || {};
+  const fitsNeed = eligiblePositions(player).some(pos=>positionNeed[pos] > 0);
+  const valuePrice = Math.round((player.trueValue / 100) * startingBudget * 0.86);
+  const fitAdjustment = fitsNeed ? Math.max(1, Math.round(startingBudget * 0.04)) : -Math.max(0, Math.round(startingBudget * 0.03));
+  const pressureAdjustment = Math.max(0, Math.round((ROSTER_LAYOUT.length - slots) * startingBudget * 0.015));
+  return clamp(valuePrice + fitAdjustment + pressureAdjustment, 1, cap);
+}
+
+function botCanAct(game, side){
+  if(!game || !game.auction || !game.botSides?.[side] || game.slots[side] <= 0) return false;
+  if(game.auction.autoFill) return game.auction.turn === side;
+  if(game.auction.bidder === side) return false;
+  if(game.auction.openDeclines && game.auction.openDeclines[side]) return false;
+  if(isMultiTeamAuction(game)) return true;
+  return game.auction.turn === side;
+}
+
+function nextBotActor(game){
+  if(!game || game.status !== 'active' || game.over || !game.auction) return null;
+  if(game.auction.autoFill){
+    const side = game.auction.turn;
+    return botCanAct(game, side) ? side : null;
+  }
+  if(isMultiTeamAuction(game)) return gameSides(game).find(side=>botCanAct(game, side)) || null;
+  const side = game.auction.turn;
+  return botCanAct(game, side) ? side : null;
+}
+
+function runBotMove(game, side){
+  if(!botCanAct(game, side)) return false;
+  if(game.auction.autoFill){
+    resolveAutoFillPick(game, side, 1);
+    return true;
+  }
+  const player = game.order.find(p=>p.id === game.auction.playerId);
+  const target = botBidTarget(game, side, player);
+  const nextBid = game.auction.bid + 1;
+  if(target >= nextBid){
+    const amount = Math.max(1, Math.min(2, target - game.auction.bid));
+    processBid(game, side, amount);
+  }else{
+    processPass(game, side);
+  }
+  return true;
+}
+
 function buildResults(game){
-  const top5Raw = topNSum(game.order.map(p=>p.trueValue), 5);
+  const sides = gameSides(game);
+  const rosterSize = ROSTER_LAYOUT.length;
+  const top5Raw = topNSum(game.order.map(p=>p.trueValue), rosterSize);
   const score = (side)=> clamp(Math.round(game.rosters[side].reduce((s,p)=>s+p.adjustedValue,0)/top5Raw*100),0,100);
-  const scores = {host:score('host'), guest:score('guest')};
-  const winner = scores.host===scores.guest ? 'tie' : (scores.host>scores.guest ? 'host' : 'guest');
+  const scores = Object.fromEntries(sides.map(side=>[side, score(side)]));
+  const sortedScores = sides.slice().sort((a,b)=>scores[b]-scores[a]);
+  const winner = sortedScores.length > 1 && scores[sortedScores[0]] === scores[sortedScores[1]] ? 'tie' : sortedScores[0];
   const maxes = {
-    ppg: topNSum(game.order.map(p=>p.ppg),5),
-    rpg: topNSum(game.order.map(p=>p.rpg),5),
-    apg: topNSum(game.order.map(p=>p.apg),5),
-    def: topNSum(game.order.map(p=>p.def),5),
+    ppg: topNSum(game.order.map(p=>p.ppg),rosterSize),
+    rpg: topNSum(game.order.map(p=>p.rpg),rosterSize),
+    apg: topNSum(game.order.map(p=>p.apg),rosterSize),
+    def: topNSum(game.order.map(p=>p.def),rosterSize),
     starPowerPoolAvg: topNAvg(game.order.map(p=>p.trueValue),3),
   };
   const totalPoolValue = game.order.reduce((s,p)=>s+p.trueValue,0);
-  const priceScale = totalPoolValue/40;
+  const startingBudgetTotal = sides.reduce((sum, side)=>sum + (game.startingBudgets?.[side] || DEFAULT_BUDGET), 0);
+  const priceScale = totalPoolValue/Math.max(1, startingBudgetTotal);
   const rows = (side)=> rosterByPosition(game, side).map(p=>{
     const expectedValue = p.soldPrice*priceScale;
     const tag = expectedValue < p.trueValue*0.75 ? 'steal' : (expectedValue > p.trueValue*1.35 ? 'overpay' : '');
@@ -2168,30 +2414,57 @@ function buildResults(game){
       tag
     };
   });
-  return {winner, scores, axes:{host:teamAxes(game,'host',maxes), guest:teamAxes(game,'guest',maxes)}, rows:{host:rows('host'), guest:rows('guest')}};
+  const axes = Object.fromEntries(sides.map(side=>[side, teamAxes(game, side, maxes)]));
+  const categoryLabels = ['Scoring','Rebounding','Playmaking','Star Power','Defense'];
+  const categoryKeys = ['scoring','rebounding','playmaking','starPower','defense'];
+  const categoryIndex = {scoring:0, rebounding:1, playmaking:2, starPower:3, defense:4};
+  const rankedList = (key)=>sides.slice().sort((a,b)=>{
+    const av = key === 'total' ? scores[a] : axes[a][categoryIndex[key]];
+    const bv = key === 'total' ? scores[b] : axes[b][categoryIndex[key]];
+    return bv - av;
+  }).map((side, idx)=>({
+    side,
+    rank:idx+1,
+    score:key === 'total' ? scores[side] : axes[side][categoryIndex[key]]
+  }));
+  const categories = Object.fromEntries(categoryKeys.map((key, idx)=>[key, {label:categoryLabels[idx], ranks:rankedList(key)}]));
+  const bidOrder = game.order
+    .filter(p=>p.drafted && p.soldTo)
+    .map(p=>({name:p.name, side:p.soldTo, price:p.soldPrice, pos:p.assignedPos || p.pos}))
+    .sort((a,b)=>b.price - a.price || a.name.localeCompare(b.name));
+  return {winner, scores, axes, rows:Object.fromEntries(sides.map(side=>[side, rows(side)])), rankings:{total:rankedList('total'), categories}, bidOrder};
 }
 
 function newRoomGame(code, options={}){
-  const pool = options.customPool || buildPool();
+  const roomOptions = normalizeRoomOptions(options);
+  const sides = FRIEND_SIDES.slice(0, roomOptions.maxTeams);
+  const pool = options.customPool || buildPool(sides.length * ROSTER_LAYOUT.length);
   const {profile, order} = pool;
   return {
     code, matchType: options.matchType || 'friend', profileName: profile.name, status:'waiting', guestJoined:false, order,
     pretendBot: !!options.pretendBot,
     customOrderNames: options.customOrderNames || null,
-    budgets:{host:20, guest:20},
-    slots:{host:5, guest:5},
-    posSlots:{host:{G:2,F:2,C:1}, guest:{G:2,F:2,C:1}},
-    rosters:{host:[], guest:[]},
+    maxTeams: roomOptions.maxTeams,
+    sides,
+    joined: makeSideMap(sides, side=>side === 'host'),
+    budgets: makeSideMap(sides, ()=>roomOptions.budget),
+    startingBudgets: makeSideMap(sides, ()=>roomOptions.budget),
+    slots: makeSideMap(sides, ()=>ROSTER_LAYOUT.length),
+    posSlots: makeSideMap(sides, ()=>({G:2,F:2,C:1})),
+    rosters: makeSideMap(sides, ()=>[]),
+    botSides: makeSideMap(sides, ()=>false),
+    botReplaced: makeSideMap(sides, ()=>false),
+    botOriginalNames: makeSideMap(sides, ()=>''),
     initialFirst: Math.random()<0.5 ? 'host' : 'guest',
     roundIndex:0, nominationCount:0, auction:null, log:[], over:false, results:null,
     noOpenBidStreak:0,
     hasSkippedPlayers:false,
-    rematch:{host:false, guest:false},
-    names:{host:'', guest:''}
+    rematch: makeSideMap(sides, ()=>false),
+    names: makeSideMap(sides, ()=>'')
   };
 }
 function otherSide(side){ return side==='host' ? 'guest' : 'host'; }
-function label(side){ return side==='host' ? 'Host' : 'Guest'; }
+function label(side){ return teamLabel(side); }
 function cleanPlayerName(name){ return (name || '').trim().replace(/\s+/g, ' ').slice(0,18); }
 function maxBid(game, side){
   if(game.slots[side]<=0) return 0;
@@ -2207,9 +2480,10 @@ function requiredPickMaxBid(game, side){
 }
 function addLog(game, who, text){ game.log.push({who, text}); if(game.log.length>80) game.log.shift(); }
 function firstBidderFor(game){
-  let f = (game.nominationCount % 2 === 0) ? game.initialFirst : otherSide(game.initialFirst);
-  if(game.slots[f]<=0) f = otherSide(f);
-  return f;
+  const sides = sidesWithSlots(game);
+  if(!sides.length) return null;
+  const initialIndex = Math.max(0, sides.indexOf(game.initialFirst));
+  return sides[(initialIndex + game.nominationCount) % sides.length];
 }
 function availableUndraftedPlayers(game){ return game.order.filter(p=>!p.drafted); }
 function nextUndraftedPlayer(game){
@@ -2217,13 +2491,12 @@ function nextUndraftedPlayer(game){
 }
 function visibleAutoFillSide(game){
   if(!game || game.over) return null;
-  if(game.slots.host <= 0 && game.slots.guest > 0) return 'guest';
-  if(game.slots.guest <= 0 && game.slots.host > 0) return 'host';
-  return null;
+  const remaining = sidesWithSlots(game);
+  return remaining.length === 1 ? remaining[0] : null;
 }
 function endGame(game){ game.over = true; game.status = 'ended'; game.results = buildResults(game); }
 function maybeAutoFillAfterRosterFull(game){
-  if(game.slots.host <= 0 && game.slots.guest <= 0){ endGame(game); return true; }
+  if(sidesWithSlots(game).length <= 0){ endGame(game); return true; }
   if(!availableUndraftedPlayers(game).length){ endGame(game); return true; }
   return false;
 }
@@ -2239,9 +2512,10 @@ function startAutoFillRound(game, side){
     turn: side,
     openedBy: side,
     autoFill: true,
-    openDeclines: {host:false, guest:false}
+    openDeclines: makeSideMap(gameSides(game), ()=>false),
+    passDeclines: makeSideMap(gameSides(game), ()=>false)
   };
-  const roundNumber = game.rosters.host.length + game.rosters.guest.length + 1;
+  const roundNumber = gameSides(game).reduce((sum, s)=>sum + game.rosters[s].length, 0) + 1;
   addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(side)} must take ${player.name} because the other roster is full.`);
 }
 function startRound(game){
@@ -2255,8 +2529,9 @@ function startRound(game){
   if(idx >= 0) game.roundIndex = idx;
   const opener = firstBidderFor(game);
   game.nominationCount += 1;
-  game.auction = { playerId:player.id, bid:0, bidder:null, turn:opener, openedBy:opener, openDeclines:{host:false, guest:false} };
-  const roundNumber = game.rosters.host.length + game.rosters.guest.length + 1;
+  game.auction = { playerId:player.id, bid:0, bidder:null, turn:opener, openedBy:opener, openDeclines:makeSideMap(gameSides(game), ()=>false), passDeclines:makeSideMap(gameSides(game), ()=>false) };
+  bumpTimedAuctionDeadline(game);
+  const roundNumber = gameSides(game).reduce((sum, s)=>sum + game.rosters[s].length, 0) + 1;
   addLog(game, 'sys', `Round ${roundNumber} of ${game.order.length}: ${player.name} revealed. ${label(opener)} gets first action.`);
 }
 function recycleAuctionPlayer(game){
@@ -2269,20 +2544,23 @@ function recycleAuctionPlayer(game){
   }
   game.auction = null;
 }
+function skipAuctionPlayerAndContinue(game){
+  recycleAuctionPlayer(game);
+  maybeAutoFillAfterRosterFull(game);
+}
 function sideForForcedFill(game, preferredSide){
   if(game.slots[preferredSide] > 0) return preferredSide;
-  const other = otherSide(preferredSide);
-  return game.slots[other] > 0 ? other : null;
+  return nextSide(game, preferredSide, side=>game.slots[side] > 0);
 }
 function forceAutoFillRemainingRosters(game, startingSide){
-  let nextSide = sideForForcedFill(game, startingSide) || sideForForcedFill(game, 'host');
-  if(!nextSide) return;
+  let nextFillSide = sideForForcedFill(game, startingSide) || sideForForcedFill(game, 'host');
+  if(!nextFillSide) return;
 
   addLog(game, 'sys', 'Draft stalled after repeated no-bid passes. Remaining players will be assigned automatically for $1 each.');
 
   const candidates = availableUndraftedPlayers(game);
   candidates.forEach(player=>{
-    const side = sideForForcedFill(game, nextSide);
+    const side = sideForForcedFill(game, nextFillSide);
     if(!side) return;
     player.drafted = true;
     player.soldTo = side;
@@ -2293,8 +2571,7 @@ function forceAutoFillRemainingRosters(game, startingSide){
     assignPosition(game, side);
     addLog(game, 'sys', `${label(side)} receives ${player.name} automatically for $1.`);
 
-    const other = otherSide(side);
-    nextSide = game.slots[other] > 0 ? other : side;
+    nextFillSide = nextSide(game, side, s=>game.slots[s] > 0) || side;
   });
 
   game.auction = null;
@@ -2305,10 +2582,10 @@ function passBeforeOpeningBid(game, side){
   const player = game.order.find(p=>p.id===game.auction.playerId);
   game.auction.openDeclines[side] = true;
   addLog(game, side, `${label(side)} passes before bidding on ${player.name}.`);
-  const other = otherSide(side);
-  if(game.slots[other] > 0 && !game.auction.openDeclines[other]){
-    game.auction.turn = other;
-    addLog(game, 'sys', `${label(other)} still has the option to open bidding on ${player.name}.`);
+  const next = nextSide(game, side, s=>game.slots[s] > 0 && !game.auction.openDeclines[s]);
+  if(next){
+    game.auction.turn = next;
+    addLog(game, 'sys', `${label(next)} still has the option to open bidding on ${player.name}.`);
     return;
   }
 
@@ -2373,36 +2650,88 @@ function resolveAuction(game, winnerSide){
 }
 function processBid(game, side, amount){
   if(game.over || game.status !== 'active') return;
-  if(!game.auction || game.auction.turn !== side || game.slots[side] <= 0) return;
+  const multiTeam = isMultiTeamAuction(game);
+  if(!game.auction || (!multiTeam && game.auction.turn !== side) || game.slots[side] <= 0) return;
   amount = Number(amount);
   if(!Number.isInteger(amount) || amount < 1) return;
   if(game.auction.autoFill){
     resolveAutoFillPick(game, side, amount);
     return;
   }
+  if(multiTeam && game.auction.openDeclines && game.auction.openDeclines[side]) return;
   const openingBid = game.auction.bid === 0;
   const newBid = game.auction.bid + amount;
   if(newBid > maxBid(game, side)) return;
   game.noOpenBidStreak = 0;
-  game.auction.bid = newBid; game.auction.bidder = side; game.auction.turn = otherSide(side);
+  game.auction.bid = newBid;
+  game.auction.bidder = side;
+  game.auction.passDeclines = makeSideMap(gameSides(game), s=>s === side);
+  game.auction.openDeclines = makeSideMap(gameSides(game), ()=>false);
+  if(!multiTeam) game.auction.turn = nextSide(game, side, s=>s !== side && game.slots[s] > 0) || side;
+  bumpTimedAuctionDeadline(game);
   addLog(game, side, openingBid ? `${label(side)} opens at $${newBid}.` : `${label(side)} raises to $${newBid}.`);
 }
 function processPass(game, side){
   if(game.over || game.status !== 'active') return;
-  if(!game.auction || game.auction.turn !== side) return;
+  const multiTeam = isMultiTeamAuction(game);
+  if(!game.auction || (!multiTeam && game.auction.turn !== side)) return;
   if(game.auction.autoFill) return;
   if(game.slots[side] <= 0){ maybeAutoFillAfterRosterFull(game); return; }
+  if(multiTeam){
+    if(game.auction.bidder === side) return;
+    if(game.auction.openDeclines && game.auction.openDeclines[side]) return;
+    game.auction.openDeclines[side] = true;
+    if(game.auction.bidder){
+      if(!game.auction.passDeclines) game.auction.passDeclines = makeSideMap(gameSides(game), s=>s === game.auction.bidder);
+      game.auction.passDeclines[side] = true;
+      addLog(game, side, `${label(side)} passes at $${game.auction.bid}.`);
+      const bidder = game.auction.bidder;
+      const everyoneElsePassed = activeAuctionSides(game).filter(s=>s !== bidder).every(s=>game.auction.passDeclines[s] || game.auction.openDeclines[s]);
+      if(everyoneElsePassed) resolveAuction(game, bidder);
+      else bumpTimedAuctionDeadline(game);
+      return;
+    }
+    addLog(game, side, `${label(side)} passes before bidding.`);
+    const everyonePassed = activeAuctionSides(game).every(s=>game.auction.openDeclines[s]);
+    if(everyonePassed) skipAuctionPlayerAndContinue(game);
+    else bumpTimedAuctionDeadline(game);
+    return;
+  }
   if(!game.auction.bidder){ passBeforeOpeningBid(game, side); return; }
   addLog(game, side, `${label(side)} passes at $${game.auction.bid}.`);
-  resolveAuction(game, game.auction.bidder);
+  if(!game.auction.passDeclines) game.auction.passDeclines = makeSideMap(gameSides(game), s=>s === game.auction.bidder);
+  game.auction.passDeclines[side] = true;
+  const bidder = game.auction.bidder;
+  const next = nextSide(game, side, s=>s !== bidder && game.slots[s] > 0 && !game.auction.passDeclines[s]);
+  if(next){
+    game.auction.turn = next;
+    return;
+  }
+  resolveAuction(game, bidder);
 }
 function stateForClient(game, side, connected){
-  const opp = otherSide(side);
+  const sides = gameSides(game);
+  const opp = sides.find(s=>s !== side) || otherSide(side);
   const currentPlayer = game.auction ? game.order.find(p=>p.id===game.auction.playerId) : null;
-  const names = game.names || {host:'', guest:''};
+  const names = game.names || makeSideMap(sides, ()=>'');
+  const teams = sides.map(s=>({
+    side:s,
+    label:label(s),
+    name:names[s] || '',
+    isBot:!!(game.botSides && game.botSides[s]),
+    budget:game.budgets[s],
+    startingBudget:game.startingBudgets?.[s] || DEFAULT_BUDGET,
+    slots:game.slots[s],
+    posSlots:game.posSlots[s],
+    maxBid:maxBid(game,s),
+    requiredPickMaxBid:requiredPickMaxBid(game,s),
+    roster:game.rosters[s].map(publicPlayer),
+    joined:!!(game.joined ? game.joined[s] : true)
+  }));
   return {
     type:'state', roomCode: game.code, matchType: game.matchType || 'friend', pretendBot: !!game.pretendBot, side, status: game.status, over: game.over, connected,
-    draftedCount: game.rosters.host.length + game.rosters.guest.length, orderLength: game.order.length,
+    maxTeams: game.maxTeams || 2, sides, teams,
+    draftedCount: sides.reduce((sum, s)=>sum + game.rosters[s].length, 0), orderLength: game.order.length,
     hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
     names,
     me: {side, name:names[side] || '', budget:game.budgets[side], slots:game.slots[side], posSlots:game.posSlots[side], maxBid:maxBid(game,side), requiredPickMaxBid:requiredPickMaxBid(game,side), roster:game.rosters[side].map(publicPlayer)},
@@ -2412,10 +2741,16 @@ function stateForClient(game, side, connected){
       bidder:game.auction.bidder,
       turn:game.auction.turn,
       autoFill:!!game.auction.autoFill,
+      timed: isMultiTeamAuction(game) && !game.auction.autoFill,
+      timeoutMs: isMultiTeamAuction(game) && !game.auction.autoFill ? MULTI_TEAM_AUCTION_TIMEOUT_MS : null,
+      deadlineAt: game.auction.deadlineAt || null,
+      deadlineRemainingMs: game.auction.deadlineAt ? Math.max(0, game.auction.deadlineAt - Date.now()) : null,
       openDeclines:game.auction.openDeclines,
+      passDeclines:game.auction.passDeclines,
       player:publicPlayer(currentPlayer)
     } : null,
     log: game.log,
+    botControls: botControlState(game, connected),
     rematch:{requested: game.rematch || {host:false, guest:false}, connected},
     results: game.results
   };
@@ -2431,6 +2766,8 @@ export class AuctionRoom {
   constructor(state, env){
     this.state = state; this.env = env; this.sessions = new Map(); this.game = null; this.loaded = false;
     this.autoFillTimer = null; this.autoFillTimerKey = null;
+    this.auctionTimer = null; this.auctionTimerKey = null;
+    this.botActionTimer = null; this.botActionTimerKey = null;
   }
   async load(){
     if(this.loaded) return;
@@ -2438,7 +2775,14 @@ export class AuctionRoom {
     this.loaded = true;
   }
   async save(){ await this.state.storage.put('game', this.game); }
-  connectedMap(){ return {host:this.sessions.has('host'), guest:this.sessions.has('guest')}; }
+  connectedMap(){
+    const sides = this.game ? gameSides(this.game) : ['host','guest'];
+    return makeSideMap(sides, side=>this.sessions.has(side) || !!(this.game && this.game.botSides && this.game.botSides[side]));
+  }
+  humanConnectedMap(){
+    const sides = this.game ? gameSides(this.game) : ['host','guest'];
+    return makeSideMap(sides, side=>this.sessions.has(side));
+  }
   async fetch(request){
     await this.load();
     const url = new URL(request.url);
@@ -2463,10 +2807,16 @@ export class AuctionRoom {
           return new Response(customPoolResult ? customPoolResult.error : 'Invalid custom draft order', {status:400, headers:CORS_HEADERS});
         }
       }
+      const roomOptions = normalizeRoomOptions(matchType === 'online' ? {...initOptions, maxTeams:2} : initOptions);
+      if(customPoolResult && customPoolResult.pool.order.length < roomOptions.maxTeams * ROSTER_LAYOUT.length){
+        return new Response(`Add at least ${roomOptions.maxTeams * ROSTER_LAYOUT.length} valid unique players for a ${roomOptions.maxTeams}-team room.`, {status:400, headers:CORS_HEADERS});
+      }
 
       if(!this.game){
         this.game = newRoomGame(code, {
           matchType,
+          maxTeams: roomOptions.maxTeams,
+          budget: roomOptions.budget,
           customPool: customPoolResult ? customPoolResult.pool : null,
           customOrderNames: customPoolResult ? customPoolResult.customOrderNames : null,
           pretendBot: !!initOptions.pretendBot
@@ -2479,11 +2829,18 @@ export class AuctionRoom {
       if(!this.game){
         return new Response(JSON.stringify({exists:false, full:false, message:'Invalid room code.'}), {status:404, headers:{'Content-Type':'application/json', ...CORS_HEADERS}});
       }
-      const connected = this.connectedMap();
-      const full = !!(this.game.guestJoined && connected.host && connected.guest && !this.game.over);
+      const connected = this.humanConnectedMap();
+      const openSide = nextOpenSide(this.game);
+      const reconnectSide = nextReconnectSide(this.game, connected);
+      const availableSide = openSide || reconnectSide;
+      const full = !!(!availableSide && !this.game.over);
       return new Response(JSON.stringify({
         exists:true,
         full,
+        availableSide,
+        reconnecting: !!(!openSide && reconnectSide),
+        maxTeams: this.game.maxTeams || 2,
+        joinedCount: joinedSides(this.game).length,
         status:this.game.status,
         matchType:this.game.matchType || 'friend',
         pretendBot:!!this.game.pretendBot,
@@ -2628,15 +2985,31 @@ export class AuctionRoom {
   async handleWebSocket(request){
     const url = new URL(request.url);
     const side = url.searchParams.get('side');
-    if(side !== 'host' && side !== 'guest') return new Response('Invalid side', {status:400});
     if(!this.game) return new Response('Room does not exist', {status:404});
-    if(side === 'guest' && this.game.guestJoined && this.sessions.has('guest') && !this.game.over){
-      return new Response('Room is already full', {status:409, headers:CORS_HEADERS});
+    const sides = gameSides(this.game);
+    if(!sides.includes(side)) return new Response('Invalid side', {status:400});
+    if(!this.game.botSides) this.game.botSides = makeSideMap(sides, ()=>false);
+    if(!this.game.botReplaced) this.game.botReplaced = makeSideMap(sides, ()=>false);
+    if(!this.game.botOriginalNames) this.game.botOriginalNames = makeSideMap(sides, ()=>'');
+    if(this.game.joined && this.game.joined[side] && this.sessions.has(side) && !this.game.over){
+      return new Response('That seat is already connected', {status:409, headers:CORS_HEADERS});
+    }
+    if(this.game.joined && this.game.joined[side] && side !== 'host' && !this.game.over && !this.sessions.has(side)){
+      // Allow reconnects to an already-joined seat after disconnect.
+    }else if(this.game.joined && this.game.joined[side] && side !== 'host' && !this.game.over){
+      return new Response('That seat is already taken', {status:409, headers:CORS_HEADERS});
     }
 
     const playerName = cleanPlayerName(url.searchParams.get('name') || '');
-    if(!this.game.names) this.game.names = {host:'', guest:''};
+    if(!this.game.names) this.game.names = makeSideMap(sides, ()=>'');
+    const wasBotSeat = !!(this.game.botSides && this.game.botSides[side]);
+    if(wasBotSeat){
+      this.game.botSides[side] = false;
+      if(this.game.botReplaced) this.game.botReplaced[side] = false;
+      addLog(this.game, 'sys', `${playerName || this.game.botOriginalNames?.[side] || label(side)} reconnected and took over ${this.game.names[side] || 'Bot'}.`);
+    }
     if(playerName) this.game.names[side] = playerName;
+    else if(wasBotSeat) this.game.names[side] = (this.game.botOriginalNames && this.game.botOriginalNames[side]) || '';
 
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
@@ -2646,13 +3019,18 @@ export class AuctionRoom {
       try{ this.sessions.get(side).close(1012, 'Replaced by new connection'); }catch(e){}
     }
     this.sessions.set(side, server);
-    if(playerName) await this.save();
-    if(side === 'guest' && !this.game.guestJoined){
-      this.game.guestJoined = true;
-      this.game.status = 'active';
-      addLog(this.game, 'sys', this.game.pretendBot ? 'Bot joined. The draft is ready.' : 'Guest joined. The friend draft is ready.');
-      await this.save();
+    if(!this.game.joined) this.game.joined = makeSideMap(sides, s=>s === 'host' || s === 'guest');
+    const wasJoined = !!this.game.joined[side];
+    this.game.joined[side] = true;
+    if(side === 'guest') this.game.guestJoined = true;
+    if(!wasJoined && side !== 'host'){
+      addLog(this.game, 'sys', this.game.pretendBot && side === 'guest' ? 'Bot joined.' : `${label(side)} joined.`);
     }
+    if(allExpectedTeamsJoined(this.game) && this.game.status === 'waiting'){
+      this.game.status = 'active';
+      addLog(this.game, 'sys', `${this.game.maxTeams || 2} teams joined. The draft is ready.`);
+    }
+    await this.save();
     server.addEventListener('message', async (event)=>{
       let msg; try{ msg = JSON.parse(event.data); }catch(e){ return; }
       await this.handleAction(side, msg);
@@ -2676,43 +3054,57 @@ export class AuctionRoom {
     this.broadcast();
     return new Response(null, {status:101, webSocket:client});
   }
-  async handleRematch(side){
+  async handlePlayAgain(side){
     if(!this.game || !this.game.over){ this.broadcast(); return; }
-    if(!this.game.rematch) this.game.rematch = {host:false, guest:false};
-    if(!this.game.rematch[side]){
-      this.game.rematch[side] = true;
-      addLog(this.game, 'sys', `${label(side)} requested a rematch.`);
-    }
-
-    if(this.game.rematch.host && this.game.rematch.guest){
-      const code = this.game.code;
-      const previousNames = this.game.names || {host:'', guest:''};
-      const previousMatchType = this.game.matchType || 'friend';
-      const previousPretendBot = !!this.game.pretendBot;
-      const previousCustomOrderNames = this.game.customOrderNames || null;
-      const customPoolResult = previousCustomOrderNames ? buildCustomPoolResult(previousCustomOrderNames) : null;
-      const freshGame = newRoomGame(code, {
-        matchType: previousMatchType,
-        pretendBot: previousPretendBot,
-        customPool: customPoolResult && customPoolResult.ok ? customPoolResult.pool : null,
-        customOrderNames: customPoolResult && customPoolResult.ok ? customPoolResult.customOrderNames : null
-      });
-      freshGame.names = previousNames;
-      freshGame.status = 'active';
-      freshGame.guestJoined = true;
-      addLog(freshGame, 'sys', 'Rematch started with a fresh player pool.');
-      this.game = freshGame;
-    }
+    const sides = gameSides(this.game);
+    const code = this.game.code;
+    const previousNames = this.game.names || makeSideMap(sides, ()=>'');
+    const previousMatchType = this.game.matchType || 'friend';
+    const previousPretendBot = !!this.game.pretendBot;
+    const previousCustomOrderNames = this.game.customOrderNames || null;
+    const previousMaxTeams = this.game.maxTeams || 2;
+    const previousBudget = this.game.startingBudgets?.host || DEFAULT_BUDGET;
+    const customPoolResult = previousCustomOrderNames ? buildCustomPoolResult(previousCustomOrderNames) : null;
+    const freshGame = newRoomGame(code, {
+      matchType: previousMatchType,
+      maxTeams: previousMaxTeams,
+      budget: previousBudget,
+      pretendBot: previousPretendBot,
+      customPool: customPoolResult && customPoolResult.ok ? customPoolResult.pool : null,
+      customOrderNames: customPoolResult && customPoolResult.ok ? customPoolResult.customOrderNames : null
+    });
+    const freshSides = gameSides(freshGame);
+    freshGame.names = makeSideMap(freshSides, s=>this.sessions.has(s) ? (previousNames[s] || '') : '');
+    freshGame.joined = makeSideMap(freshSides, s=>this.sessions.has(s));
+    freshGame.guestJoined = !!freshGame.joined.guest;
+    freshGame.status = allExpectedTeamsJoined(freshGame) ? 'active' : 'waiting';
+    addLog(freshGame, 'sys', `Play Again opened the same room code: ${code}.`);
+    if(freshGame.status === 'active') addLog(freshGame, 'sys', `${freshGame.maxTeams || 2} teams joined. The draft is ready.`);
+    this.game = freshGame;
 
     await this.save();
     this.broadcast();
   }
 
+  async handleBotControl(side, msg){
+    if(!this.game || this.game.over || (this.game.matchType || 'friend') === 'online'){
+      this.broadcast();
+      return;
+    }
+    const connected = this.humanConnectedMap();
+    const action = msg && msg.action;
+    if(action === 'add') addBotToGame(this.game, connected);
+    else if(action === 'remove') removeBotFromGame(this.game);
+    await this.save();
+    this.broadcast();
+  }
+
   async handleAction(side, msg){
-    if(msg && msg.type === 'rematch'){ await this.handleRematch(side); return; }
+    if(msg && (msg.type === 'playAgain' || msg.type === 'rematch')){ await this.handlePlayAgain(side); return; }
+    if(msg && msg.type === 'botControl'){ await this.handleBotControl(side, msg); return; }
     if(!this.game || this.game.over){ this.broadcast(); return; }
     if(this.game.status !== 'active'){ this.broadcast(); return; }
-    if(!this.sessions.has('host') || !this.sessions.has('guest')){ this.broadcast(); return; }
+    if(!gameSides(this.game).every(s=>this.sessions.has(s) || !!(this.game.botSides && this.game.botSides[s]))){ this.broadcast(); return; }
     if(msg.type === 'reveal'){ if(!this.game.auction) startRound(this.game); }
     else if(msg.type === 'bid') processBid(this.game, side, msg.amount);
     else if(msg.type === 'pass') processPass(this.game, side);
@@ -2734,10 +3126,54 @@ export class AuctionRoom {
     }
     this.autoFillTimerKey = null;
   }
+  clearAuctionTimer(){
+    if(this.auctionTimer){
+      clearTimeout(this.auctionTimer);
+      this.auctionTimer = null;
+    }
+    this.auctionTimerKey = null;
+  }
+  clearBotActionTimer(){
+    if(this.botActionTimer){
+      clearTimeout(this.botActionTimer);
+      this.botActionTimer = null;
+    }
+    this.botActionTimerKey = null;
+  }
 
   autoFillKey(){
     if(!this.game || !this.game.auction || !this.game.auction.autoFill) return null;
-    return `${this.game.auction.playerId}:${this.game.auction.turn}:${this.game.rosters.host.length}:${this.game.rosters.guest.length}:${this.game.slots.host}:${this.game.slots.guest}`;
+    const sides = gameSides(this.game);
+    return `${this.game.auction.playerId}:${this.game.auction.turn}:${sides.map(s=>this.game.rosters[s].length).join(',')}:${sides.map(s=>this.game.slots[s]).join(',')}`;
+  }
+  timedAuctionKey(){
+    if(!this.game || !this.game.auction || this.game.auction.autoFill || !isMultiTeamAuction(this.game)) return null;
+    const auction = this.game.auction;
+    const sides = gameSides(this.game);
+    return [
+      auction.playerId,
+      auction.bid,
+      auction.bidder || '',
+      sides.map(s=>auction.openDeclines && auction.openDeclines[s] ? '1' : '0').join(''),
+      sides.map(s=>auction.passDeclines && auction.passDeclines[s] ? '1' : '0').join('')
+    ].join(':');
+  }
+  botActionKey(){
+    if(!this.game || !this.game.auction || this.game.over) return null;
+    const actor = nextBotActor(this.game);
+    if(!actor) return null;
+    const auction = this.game.auction;
+    const sides = gameSides(this.game);
+    return [
+      actor,
+      auction.playerId,
+      auction.bid,
+      auction.bidder || '',
+      auction.turn || '',
+      sides.map(s=>auction.openDeclines && auction.openDeclines[s] ? '1' : '0').join(''),
+      sides.map(s=>auction.passDeclines && auction.passDeclines[s] ? '1' : '0').join(''),
+      sides.map(s=>this.game.rosters[s].length).join(',')
+    ].join(':');
   }
 
   scheduleAutoFillTimer(){
@@ -2771,6 +3207,58 @@ export class AuctionRoom {
     try{ this.state.storage.setAlarm(Date.now() + 1500); }catch(e){}
   }
 
+  scheduleTimedAuctionTimer(){
+    if(!this.game || !this.game.auction || this.game.auction.autoFill || this.game.over || !isMultiTeamAuction(this.game)){
+      this.clearAuctionTimer();
+      return;
+    }
+
+    const key = this.timedAuctionKey();
+    if(this.auctionTimer && this.auctionTimerKey === key) return;
+
+    this.clearAuctionTimer();
+    this.auctionTimerKey = key;
+    this.auctionTimer = setTimeout(async ()=>{
+      const expectedKey = this.auctionTimerKey;
+      this.auctionTimer = null;
+      this.auctionTimerKey = null;
+      await this.load();
+      if(!this.game || !this.game.auction || this.game.over || this.timedAuctionKey() !== expectedKey) return;
+      const bidder = this.game.auction.bidder;
+      if(bidder && this.game.auction.bid > 0){
+        resolveAuction(this.game, bidder);
+      }else{
+        skipAuctionPlayerAndContinue(this.game);
+      }
+      await this.save();
+      this.broadcast();
+    }, MULTI_TEAM_AUCTION_TIMEOUT_MS);
+  }
+
+  scheduleBotActions(){
+    if(!this.game || this.game.status !== 'active' || this.game.over || !nextBotActor(this.game)){
+      this.clearBotActionTimer();
+      return;
+    }
+
+    const key = this.botActionKey();
+    if(this.botActionTimer && this.botActionTimerKey === key) return;
+
+    this.clearBotActionTimer();
+    this.botActionTimerKey = key;
+    this.botActionTimer = setTimeout(async ()=>{
+      const expectedKey = this.botActionTimerKey;
+      this.botActionTimer = null;
+      this.botActionTimerKey = null;
+      await this.load();
+      if(!this.game || this.game.over || this.botActionKey() !== expectedKey) return;
+      const actor = nextBotActor(this.game);
+      if(actor) runBotMove(this.game, actor);
+      await this.save();
+      this.broadcast();
+    }, BOT_ACTION_DELAY_MS);
+  }
+
 
   broadcast(){
     if(!this.game) return;
@@ -2779,6 +3267,8 @@ export class AuctionRoom {
       try{ ws.send(JSON.stringify(stateForClient(this.game, side, connected))); }catch(e){}
     }
     this.scheduleAutoFillTimer();
+    this.scheduleTimedAuctionTimer();
+    this.scheduleBotActions();
   }
 }
 

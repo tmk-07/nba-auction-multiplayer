@@ -76,13 +76,13 @@
         <div class="advanced-settings-row">
           <label for="advancedPlayerCountSelect">
             <span>Number of players</span>
-            <small>UI only for now — does not affect the game yet</small>
+            <small>Friend room seats, including you</small>
           </label>
           <select id="advancedPlayerCountSelect" class="advanced-select">
-            <option value="5" selected>5 players</option>
+            <option value="2" selected>2 players</option>
             <option value="3">3 players</option>
             <option value="4">4 players</option>
-            <option value="6">6 players</option>
+            <option value="5">5 players</option>
           </select>
         </div>
 
@@ -97,23 +97,8 @@
           </div>
         </div>
 
-        <div class="advanced-settings-row">
-          <label for="advancedDraftPoolSelect">
-            <span>Draft pool</span>
-            <small>Future setting for current vs historical pools</small>
-          </label>
-          <select id="advancedDraftPoolSelect" class="advanced-select">
-            <option value="current" selected>Current players</option>
-            <option value="all-time">All time</option>
-          </select>
-        </div>
-
-        <div class="advanced-settings-note">
-          These controls are just the UI shell right now. Next step is wiring them into room creation and the Worker game state.
-        </div>
-
         <div class="advanced-settings-actions">
-          <button class="btn" id="advancedSettingsDoneBtn" type="button" style="background:var(--hardwood); color:#1a1206; border:none;">Done</button>
+          <button class="btn" id="advancedSettingsDoneBtn" type="button" style="background:var(--hardwood); color:#1a1206; border:none;">Create Game</button>
         </div>
       </div>
     </div>
@@ -206,7 +191,7 @@
   <a class="feedback-link" href="https://forms.gle/gSxCA4PdJhkVy9Bt8" target="_blank" rel="noopener noreferrer">
     Report a bug or suggestion
   </a>
-  <div class="version-footer">v3.1.9</div>
+  <div class="version-footer">v4.3.4</div>
 </footer>
 
 <script src="app.js"></script>

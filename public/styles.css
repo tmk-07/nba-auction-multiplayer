@@ -104,9 +104,16 @@
   .btn.pass{border-color:var(--danger); color:var(--danger);}
   .btn.pass:hover:not(:disabled){background:rgba(194,78,78,0.12);}
   .waiting{color:var(--chalk-dim); font-size:13px; font-style:italic; margin-top:14px;}
+  .auction-countdown{
+    color:var(--gold);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    font-weight:800;
+    white-space:nowrap;
+  }
 
   /* Rosters */
-  .rosters{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+.rosters{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
   .roster-col h3{
     font-family:'Oswald',sans-serif; font-size:13px; text-transform:uppercase; letter-spacing:.05em;
     margin:0 0 8px 0; color:var(--chalk-dim);
@@ -188,6 +195,248 @@
 
 
   .hidden{display:none;}
+
+.scoreboard{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr));
+}
+.rosters{
+  grid-template-columns:repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.score-rank-grid{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:12px;
+  align-items:stretch;
+  margin-top:14px;
+}
+.category-rank-card,
+.team-results-card,
+.bid-order-wrap{
+  background:var(--panel-bg-2);
+  border:1px solid var(--line);
+  border-radius:8px;
+  padding:12px;
+}
+.category-rank-card h3,
+.team-results-card h3{
+  font-family:'Oswald', sans-serif;
+  font-size:14px;
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  border:none;
+  margin:0 0 8px;
+  padding:0;
+  color:var(--chalk);
+}
+.category-rank-card ol{
+  list-style:none;
+  padding:0;
+  margin:0;
+}
+.category-rank-card li{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:5px 0;
+  border-bottom:1px solid rgba(255,255,255,0.05);
+  color:var(--chalk-dim);
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+}
+.category-rank-card li span{
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.category-rank-card li em{
+  color:var(--chalk-dim);
+  font-style:normal;
+  font-weight:800;
+}
+.category-rank-card li.user-rank span,
+.category-rank-card li.user-rank em,
+.category-rank-card li.user-rank b{
+  color:var(--gold);
+}
+.category-rank-card li b{
+  color:var(--chalk-dim);
+  font-family:'JetBrains Mono', monospace;
+}
+.rank-cell{
+  color:var(--gold);
+  font-family:'JetBrains Mono', monospace;
+  font-weight:800;
+  white-space:nowrap;
+}
+.team-results-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  gap:12px;
+  margin-top:10px;
+}
+.team-results-card.you{
+  border-color:var(--hardwood);
+}
+.team-results-card table,
+.bid-order-wrap table{
+  margin-top:0;
+  table-layout:fixed;
+}
+.team-results-card td,
+.bid-order-wrap td{
+  font-family:'JetBrains Mono', monospace;
+  font-size:12px;
+}
+.team-results-card th:nth-child(1),
+.team-results-card .roster-result-slot{
+  width:15%;
+  text-align:left;
+  padding-left:8px;
+}
+.team-results-card th:nth-child(2),
+.team-results-card .roster-result-player{
+  width:65%;
+  text-align:left;
+  padding-left:14px;
+}
+.team-results-card .roster-result-player,
+.bid-order-wrap .bid-result-player,
+.bid-order-wrap .bid-result-team{
+  overflow:hidden;
+  border-right:1px solid transparent;
+}
+.scroll-name{
+  display:block;
+  max-width:100%;
+  overflow-x:auto;
+  overflow-y:hidden;
+  white-space:nowrap;
+  scrollbar-width:thin;
+}
+.scroll-name::-webkit-scrollbar{
+  height:4px;
+}
+.scroll-name::-webkit-scrollbar-thumb{
+  background:rgba(232,184,75,0.35);
+  border-radius:999px;
+}
+.bid-order-grid th:nth-child(1),
+.bid-order-grid td:nth-child(1){
+  width:16%;
+}
+.bid-order-grid th:nth-child(2),
+.bid-order-grid .bid-result-player{
+  width:42%;
+}
+.bid-order-grid th:nth-child(3),
+.bid-order-grid .bid-result-team{
+  width:27%;
+}
+.bid-order-grid th:nth-child(4),
+.bid-order-grid td:nth-child(4){
+  width:15%;
+}
+.team-results-card th:nth-child(3),
+.team-results-card .roster-result-paid{
+  width:20%;
+  text-align:right;
+  padding-right:8px;
+}
+.results .team-results-grid + h2,
+.results .score-rank-grid + h2,
+.results .bid-order-wrap + h2{
+  margin-top:28px;
+}
+.results .team-results-grid{
+  margin-bottom:26px;
+}
+.results .bid-order-wrap{
+  margin-bottom:16px;
+  background:transparent;
+  border:0;
+  padding:0;
+}
+.bid-order-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:12px;
+  align-items:start;
+}
+.bid-order-grid table{
+  min-width:0;
+  background:var(--panel-bg-2);
+  border:1px solid var(--line);
+  outline:1px solid var(--line);
+  outline-offset:-1px;
+  box-shadow:0 0 0 1px var(--line) inset;
+  border-radius:8px;
+  overflow:hidden;
+}
+@media (max-width:700px){
+  .bid-order-grid{
+    grid-template-columns:1fr;
+  }
+}
+@media (max-width:800px){
+  .score-rank-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width:560px){
+  .score-rank-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+.share-snapshot-sample.multi-team-share-snapshot .results{
+  width:1080px;
+  min-height:1080px;
+  padding:34px 38px 28px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .winner-banner{
+  font-size:30px;
+  margin-bottom:14px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .score-rank-grid{
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:10px;
+  margin-top:10px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card{
+  padding:10px;
+  border-radius:6px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card h3,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card h3{
+  font-family:'Oswald', sans-serif;
+  font-size:13px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card li,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card td{
+  font-family:'JetBrains Mono', monospace;
+  font-size:10px;
+  line-height:1.2;
+  padding-top:4px;
+  padding-bottom:4px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .scroll-name{
+  scrollbar-width:none;
+}
+.share-snapshot-sample.multi-team-share-snapshot .scroll-name::-webkit-scrollbar{
+  display:none;
+}
+.share-snapshot-sample.multi-team-share-snapshot .team-results-grid{
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+  gap:10px;
+}
+.share-snapshot-sample.multi-team-share-snapshot .results h2{
+  font-family:'Oswald', sans-serif;
+  font-size:13px;
+  margin:14px 0 8px;
+}
 
 
 /* Paired results roster comparison */
@@ -651,10 +900,35 @@
   color:var(--gold);
   letter-spacing:0.01em;
 }
+.room-code-panel{
+  position:relative;
+  text-align:center;
+  padding-bottom:52px;
+}
+.room-bot-actions{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  display:flex;
+  gap:8px;
+  justify-content:flex-end;
+}
+.room-bot-btn{
+  min-height:32px;
+  padding:7px 10px;
+  font-size:11px;
+}
 @media (max-width:700px){
   .online-option-card{
     height:205px;
     min-height:205px;
+  }
+  .room-code-panel{
+    padding-bottom:82px;
+  }
+  .room-bot-actions{
+    left:14px;
+    flex-wrap:wrap;
   }
 }
 
@@ -1868,17 +2142,6 @@
   border-color:var(--hardwood);
 }
 
-.advanced-settings-note{
-  margin-top:10px;
-  padding:10px 11px;
-  border:1px dashed var(--line);
-  border-radius:8px;
-  color:var(--chalk-dim);
-  font-family:'JetBrains Mono', monospace;
-  font-size:10.5px;
-  line-height:1.45;
-}
-
 .advanced-settings-actions{
   display:flex;
   justify-content:flex-end;
@@ -2016,4 +2279,22 @@
 .advanced-budget-input{
   -moz-appearance:textfield;
   appearance:textfield;
+}
+
+/* v3.1.19 multi-team PNG typography lock */
+.share-snapshot-sample.multi-team-share-snapshot .winner-banner,
+.share-snapshot-sample.multi-team-share-snapshot .results h2,
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card h3,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card h3,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card th{
+  font-family:'Oswald', sans-serif !important;
+}
+
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card li,
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card li span,
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card li b,
+.share-snapshot-sample.multi-team-share-snapshot .category-rank-card li em,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card td,
+.share-snapshot-sample.multi-team-share-snapshot .team-results-card .scroll-name{
+  font-family:'JetBrains Mono', monospace !important;
 }
