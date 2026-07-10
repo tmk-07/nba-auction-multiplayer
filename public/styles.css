@@ -1963,6 +1963,7 @@
   display:flex;
   align-items:center;
   justify-content:center;
+  gap:9px;
   margin-bottom:7px;
 }
 
@@ -1993,6 +1994,19 @@
   fill:none;
   stroke:currentColor;
   stroke-width:1.8;
+}
+
+.tkimify-icon{
+  width:14px;
+  height:14px;
+  display:block;
+  opacity:0;
+}
+
+.tkimify-link{
+  background:currentColor;
+  -webkit-mask:url("tkimifylight.png") center / 14px 14px no-repeat;
+  mask:url("tkimifylight.png") center / 14px 14px no-repeat;
 }
 
 /* Play Friend advanced settings UI */
@@ -2279,6 +2293,12 @@
 .advanced-budget-input{
   -moz-appearance:textfield;
   appearance:textfield;
+}
+
+/* v4.4.1 live multi-team results typography lock */
+.results .category-rank-card h3,
+.results .team-results-card h3{
+  font-family:'Oswald', sans-serif !important;
 }
 
 /* v3.1.19 multi-team PNG typography lock */

@@ -1916,6 +1916,243 @@ const MASTER = [
     "def": 6
   }
 ];
+const ALL_TIME_PLAYER_ROWS = [
+  ["Michael Jordan","G","G/F","superstar",37.1,6.9,6.3,10],
+  ["LeBron James","F","G/F","superstar",30.0,8.6,9.1,8],
+  ["Kareem Abdul-Jabbar","C","C","superstar",34.8,16.6,4.6,9],
+  ["Bill Russell","C","C","superstar",18.9,24.7,5.3,10],
+  ["Magic Johnson","G","G/F","superstar",23.9,6.3,12.2,6],
+  ["Larry Bird","F","F","superstar",29.9,9.3,6.1,7],
+  ["Wilt Chamberlain","C","C","superstar",50.4,25.7,2.4,8],
+  ["Tim Duncan","F","F/C","superstar",25.5,12.7,3.7,10],
+  ["Kobe Bryant","G","G/F","superstar",35.4,5.3,4.5,8],
+  ["Shaquille O'Neal","C","C","superstar",29.7,13.6,3.8,8],
+  ["Hakeem Olajuwon","C","C","superstar",27.8,10.8,3.5,10],
+  ["Stephen Curry","G","G","superstar",32.0,5.5,6.7,5],
+  ["Kevin Durant","F","F","superstar",32.0,7.4,5.5,6],
+  ["Oscar Robertson","G","G","superstar",30.8,12.5,11.4,6],
+  ["Jerry West","G","G","superstar",31.3,4.7,7.9,8],
+  ["Julius Erving","F","F","superstar",31.9,12.2,4.2,7],
+  ["Moses Malone","C","C","superstar",31.1,14.7,1.8,7],
+  ["Karl Malone","F","F","superstar",31.0,11.1,2.8,8],
+  ["Dirk Nowitzki","F","F/C","superstar",26.6,9.0,2.8,5],
+  ["Kevin Garnett","F","F/C","superstar",24.2,13.9,5.0,10],
+  ["David Robinson","C","C","superstar",29.8,10.7,4.8,10],
+  ["Giannis Antetokounmpo","F","F/C","superstar",31.1,11.8,5.7,9],
+  ["Nikola Jokic","C","C","superstar",26.4,12.4,9.0,6],
+  ["Dwyane Wade","G","G","superstar",30.2,5.0,7.5,8],
+  ["Elgin Baylor","F","F","superstar",38.3,18.6,4.6,6],
+  ["Isiah Thomas","G","G","star",21.2,4.5,13.9,7],
+  ["Charles Barkley","F","F","star",28.3,11.9,3.2,6],
+  ["John Havlicek","F","G/F","star",28.9,9.0,7.5,8],
+  ["Bob Pettit","F","F/C","star",31.1,18.7,3.7,6],
+  ["Scottie Pippen","F","G/F","star",22.0,8.7,5.6,10],
+  ["Kawhi Leonard","F","F","star",27.1,7.1,4.9,10],
+  ["James Harden","G","G","star",36.1,6.6,7.5,4],
+  ["Chris Paul","G","G","star",22.8,5.5,11.0,9],
+  ["Steve Nash","G","G","star",18.8,4.2,11.6,4],
+  ["Allen Iverson","G","G","star",33.0,3.2,7.4,5],
+  ["Jason Kidd","G","G","star",18.7,6.3,10.7,9],
+  ["John Stockton","G","G","star",17.2,2.6,14.5,8],
+  ["Clyde Drexler","G","G/F","star",27.2,7.9,5.8,7],
+  ["Patrick Ewing","C","C","star",28.6,10.9,2.2,9],
+  ["Walt Frazier","G","G","star",23.2,7.3,6.7,10],
+  ["George Gervin","G","G/F","star",33.1,5.2,2.6,4],
+  ["Rick Barry","F","F","star",35.6,9.2,3.6,6],
+  ["Elvin Hayes","F","F/C","star",28.4,17.1,1.4,8],
+  ["Kevin McHale","F","F/C","star",26.1,9.9,2.6,9],
+  ["Willis Reed","C","F/C","star",21.7,13.9,2.0,9],
+  ["Bob Cousy","G","G","star",21.7,6.4,8.6,5],
+  ["Nate Thurmond","C","C","star",21.3,22.0,4.2,10],
+  ["Dominique Wilkins","F","F","star",30.7,6.4,2.9,5],
+  ["Reggie Miller","G","G","star",24.6,3.6,3.8,4],
+  ["Ray Allen","G","G","star",26.4,4.5,4.1,5],
+  ["Paul Pierce","F","G/F","star",26.8,6.7,4.7,6],
+  ["Gary Payton","G","G","star",24.2,6.5,8.9,10],
+  ["Russell Westbrook","G","G","star",31.6,10.7,10.4,6],
+  ["Anthony Davis","C","F/C","star",28.1,11.1,2.3,10],
+  ["Dwight Howard","C","C","star",22.9,14.1,1.4,10],
+  ["Damian Lillard","G","G","star",32.2,4.8,7.3,4],
+  ["Carmelo Anthony","F","F","star",28.7,6.9,2.6,4],
+  ["Vince Carter","G","G/F","star",27.6,5.5,3.9,5],
+  ["Tracy McGrady","G","G/F","star",32.1,6.5,5.5,5],
+  ["Bill Walton","C","C","star",18.9,13.2,5.0,10],
+  ["Dave Cowens","C","F/C","starter",20.5,16.2,4.1,9],
+  ["Wes Unseld","C","C","starter",16.2,18.2,4.1,9],
+  ["Dolph Schayes","F","F/C","starter",24.9,14.2,3.1,6],
+  ["George Mikan","C","C","starter",28.4,14.1,2.8,7],
+  ["Sam Jones","G","G","starter",25.9,5.1,2.8,6],
+  ["Hal Greer","G","G","starter",24.1,5.4,5.1,6],
+  ["Nate Archibald","G","G","starter",34.0,2.8,11.4,4],
+  ["Earl Monroe","G","G","starter",25.8,3.9,4.9,5],
+  ["Pete Maravich","G","G","starter",31.1,5.1,5.4,4],
+  ["Dave Bing","G","G","starter",27.1,4.7,6.4,5],
+  ["Lenny Wilkens","G","G","starter",22.4,4.2,8.2,5],
+  ["Jerry Lucas","F","F/C","starter",21.5,20.0,3.4,6],
+  ["Robert Parish","C","C","starter",19.9,10.6,1.8,8],
+  ["Dennis Rodman","F","F/C","starter",9.8,18.7,2.3,10],
+  ["Chris Bosh","F","F/C","starter",24.0,10.8,2.4,6],
+  ["Pau Gasol","C","F/C","starter",20.8,9.8,3.4,7],
+  ["Tony Parker","G","G","starter",22.0,3.1,6.9,5],
+  ["Manu Ginobili","G","G/F","starter",19.5,4.8,4.5,7],
+  ["Alonzo Mourning","C","C","starter",23.2,10.4,1.6,10],
+  ["Dikembe Mutombo","C","C","starter",16.6,12.3,1.3,10],
+  ["Alex English","F","F","starter",29.8,5.7,4.8,4],
+  ["Bernard King","F","F","starter",32.9,5.8,3.7,4],
+  ["James Worthy","F","F","starter",21.4,6.0,3.5,6],
+  ["Billy Cunningham","F","F","starter",24.8,12.8,4.3,6],
+  ["Bob McAdoo","C","F/C","starter",34.5,14.1,2.2,6],
+  ["Artis Gilmore","C","C","starter",23.7,17.6,2.5,8],
+  ["Adrian Dantley","F","F","starter",30.7,5.7,3.0,4],
+  ["Joe Dumars","G","G","starter",23.5,2.3,5.7,9],
+  ["Dennis Johnson","G","G","starter",19.5,5.1,5.8,9],
+  ["Sidney Moncrief","G","G","starter",22.5,5.8,4.3,10],
+  ["Grant Hill","F","G/F","starter",25.8,6.6,5.2,6],
+  ["Yao Ming","C","C","starter",25.0,9.4,2.0,7],
+  ["Chris Webber","F","F/C","starter",27.1,11.1,4.2,6],
+  ["Ben Wallace","C","F/C","starter",9.7,15.4,1.6,10],
+  ["Paul Arizin","F","F","starter",25.6,9.1,2.3,5],
+  ["Jimmy Butler","F","G/F","starter",23.9,6.2,5.5,8],
+  ["Klay Thompson","G","G/F","starter",22.3,3.7,2.1,7],
+  ["Draymond Green","F","F/C","starter",14.0,9.5,7.4,10],
+  ["Luka Doncic","G","G/F","star",33.9,9.2,9.8,4],
+  ["Shai Gilgeous-Alexander","G","G","star",32.7,5.0,6.4,7]
+];
+
+const ALL_TIME_REBALANCE_REMOVALS = new Set([
+  "Willis Reed",
+  "Nate Thurmond",
+  "Dave Cowens",
+  "Wes Unseld",
+  "Dolph Schayes",
+  "Sam Jones",
+  "Hal Greer",
+  "Nate Archibald",
+  "Earl Monroe",
+  "Pete Maravich",
+  "Dave Bing",
+  "Lenny Wilkens",
+  "Jerry Lucas",
+  "Billy Cunningham",
+  "Artis Gilmore",
+  "Paul Arizin"
+]);
+
+const ALL_TIME_REBALANCE_ADDITIONS = [
+  ["Joel Embiid","C","C","star",33.1,10.2,4.2,8],
+  ["Jayson Tatum","F","F","star",30.1,8.8,4.6,7],
+  ["Devin Booker","G","G","star",27.8,4.5,5.5,5],
+  ["Donovan Mitchell","G","G","star",28.3,4.3,4.4,6],
+  ["Anthony Edwards","G","G/F","star",27.6,5.7,4.5,6],
+  ["Victor Wembanyama","C","F/C","star",24.3,11.0,3.7,10],
+  ["Kyrie Irving","G","G","star",27.4,4.4,5.8,4],
+  ["Paul George","F","G/F","star",28.0,8.2,4.1,8],
+  ["Blake Griffin","F","F/C","star",24.1,9.5,3.9,5],
+  ["Derrick Rose","G","G","star",25.0,4.1,7.7,5],
+  ["Amar'e Stoudemire","F","F/C","star",26.0,8.9,1.6,5],
+  ["Penny Hardaway","G","G/F","star",21.7,4.3,7.1,6],
+  ["Mitch Richmond","G","G","star",25.9,3.9,4.2,5],
+  ["Chris Mullin","F","G/F","star",26.5,5.9,5.1,5],
+  ["LaMarcus Aldridge","F","F/C","starter",23.4,10.2,2.0,5],
+  ["Kevin Love","F","F/C","starter",26.1,12.5,4.4,4]
+];
+
+const MODERN_SUPERSTAR_ROWS = [
+  ["LeBron James","F","G/F","superstar",30.0,8.6,9.1,8],
+  ["Kobe Bryant","G","G/F","superstar",35.4,5.3,4.5,8],
+  ["Shaquille O'Neal","C","C","superstar",29.7,13.6,3.8,8],
+  ["Tim Duncan","F","F/C","superstar",25.5,12.7,3.7,10],
+  ["Kevin Garnett","F","F/C","superstar",24.2,13.9,5.0,10],
+  ["Dirk Nowitzki","F","F/C","superstar",26.6,9.0,2.8,5],
+  ["Dwyane Wade","G","G","superstar",30.2,5.0,7.5,8],
+  ["Stephen Curry","G","G","superstar",32.0,5.5,6.7,5],
+  ["Kevin Durant","F","F","superstar",32.0,7.4,5.5,6],
+  ["Giannis Antetokounmpo","F","F/C","superstar",31.1,11.8,5.7,9],
+  ["Nikola Jokic","C","C","superstar",26.4,12.4,9.0,6],
+  ["James Harden","G","G","superstar",36.1,6.6,7.5,4],
+  ["Chris Paul","G","G","star",22.8,5.5,11.0,9],
+  ["Steve Nash","G","G","star",18.8,4.2,11.6,4],
+  ["Allen Iverson","G","G","star",33.0,3.2,7.4,5],
+  ["Jason Kidd","G","G","star",18.7,6.3,10.7,9],
+  ["Kawhi Leonard","F","F","star",27.1,7.1,4.9,10],
+  ["Luka Doncic","G","G/F","star",33.9,9.2,9.8,4],
+  ["Shai Gilgeous-Alexander","G","G","star",32.7,5.0,6.4,7],
+  ["Joel Embiid","C","C","star",33.1,10.2,4.2,8],
+  ["Anthony Davis","C","F/C","star",28.1,11.1,2.3,10],
+  ["Dwight Howard","C","C","star",22.9,14.1,1.4,10],
+  ["Russell Westbrook","G","G","star",31.6,10.7,10.4,6],
+  ["Damian Lillard","G","G","star",32.2,4.8,7.3,4],
+  ["Carmelo Anthony","F","F","star",28.7,6.9,2.6,4],
+  ["Tracy McGrady","G","G/F","star",32.1,6.5,5.5,5],
+  ["Vince Carter","G","G/F","star",27.6,5.5,3.9,5],
+  ["Ray Allen","G","G","star",26.4,4.5,4.1,5],
+  ["Paul Pierce","F","G/F","star",26.8,6.7,4.7,6],
+  ["Chris Bosh","F","F/C","star",24.0,10.8,2.4,6],
+  ["Pau Gasol","C","F/C","starter",20.8,9.8,3.4,7],
+  ["Tony Parker","G","G","starter",22.0,3.1,6.9,5],
+  ["Manu Ginobili","G","G/F","starter",19.5,4.8,4.5,7],
+  ["Yao Ming","C","C","starter",25.0,9.4,2.0,7],
+  ["Chris Webber","F","F/C","starter",27.1,11.1,4.2,6],
+  ["Ben Wallace","C","F/C","starter",9.7,15.4,1.6,10],
+  ["Draymond Green","F","F/C","starter",14.0,9.5,7.4,10],
+  ["Klay Thompson","G","G/F","starter",22.3,3.7,2.1,7],
+  ["Jimmy Butler","F","G/F","starter",23.9,6.2,5.5,8],
+  ["Paul George","F","G/F","star",28.0,8.2,4.1,8],
+  ["Kyrie Irving","G","G","star",27.4,4.4,5.8,4],
+  ["Blake Griffin","F","F/C","star",24.1,9.5,3.9,5],
+  ["Amar'e Stoudemire","F","F/C","star",26.0,8.9,1.6,5],
+  ["Derrick Rose","G","G","star",25.0,4.1,7.7,5],
+  ["Jayson Tatum","F","F","star",30.1,8.8,4.6,7],
+  ["Devin Booker","G","G","star",27.8,4.5,5.5,5],
+  ["Donovan Mitchell","G","G","star",28.3,4.3,4.4,6],
+  ["Anthony Edwards","G","G/F","star",27.6,5.7,4.5,6],
+  ["Victor Wembanyama","C","F/C","star",24.3,11.0,3.7,10],
+  ["DeMarcus Cousins","C","C","starter",27.0,11.0,4.6,5],
+  ["LaMarcus Aldridge","F","F/C","starter",23.4,10.2,2.0,5],
+  ["Kevin Love","F","F/C","starter",26.1,12.5,4.4,4],
+  ["Deron Williams","G","G","starter",21.0,3.3,10.7,5],
+  ["Brandon Roy","G","G","starter",22.6,4.7,5.1,5],
+  ["Joe Johnson","G","G/F","starter",25.0,4.2,4.4,4],
+  ["Gilbert Arenas","G","G","starter",29.3,3.5,6.1,4],
+  ["Chauncey Billups","G","G","starter",18.5,3.1,8.6,7],
+  ["Marc Gasol","C","C","starter",19.5,8.9,4.6,9],
+  ["Rudy Gobert","C","C","starter",15.9,12.9,1.3,10],
+  ["Shawn Marion","F","F","starter",21.8,11.8,1.8,8],
+  ["Jermaine O'Neal","C","F/C","starter",24.3,8.8,1.9,8],
+  ["Peja Stojakovic","F","F","starter",24.2,6.3,2.1,3],
+  ["Rasheed Wallace","F","F/C","starter",19.4,8.2,1.8,8],
+  ["Zach Randolph","F","F/C","starter",23.6,12.2,2.2,4],
+  ["DeMar DeRozan","G","G/F","starter",27.3,5.2,4.9,4],
+  ["Trae Young","G","G","starter",29.6,3.9,9.3,3],
+  ["Ja Morant","G","G","starter",27.4,5.7,6.7,5],
+  ["Zion Williamson","F","F","starter",27.0,7.2,3.7,5],
+  ["Karl-Anthony Towns","C","F/C","starter",26.5,10.8,4.4,5],
+  ["Jalen Brunson","G","G","starter",28.7,3.6,6.7,5],
+  ["Jaylen Brown","F","G/F","starter",26.6,6.9,3.5,7],
+  ["Pascal Siakam","F","F/C","starter",22.8,8.5,5.3,7],
+  ["Tyrese Haliburton","G","G","starter",20.7,3.7,10.4,5],
+  ["Bam Adebayo","C","C","starter",21.2,10.4,4.3,9],
+  ["Lamar Odom","F","F/C","starter",17.1,9.7,4.1,6]
+];
+
+function rowsToPlayers(rows){
+  return rows.map(([name,pos,positionList,tier,ppg,rpg,apg,def])=>({
+  name,
+  pos,
+  positions:positionList.split('/'),
+  tier,
+  ppg,
+  rpg,
+  apg,
+  def
+  }));
+}
+const ALL_TIME_MASTER = rowsToPlayers([
+  ...ALL_TIME_PLAYER_ROWS.filter(row=>!ALL_TIME_REBALANCE_REMOVALS.has(row[0])),
+  ...ALL_TIME_REBALANCE_ADDITIONS
+]);
+const MODERN_SUPERSTARS_MASTER = rowsToPlayers(MODERN_SUPERSTAR_ROWS);
+
 const TIER_BASE = {superstar:95, star:72, starter:50, role:30, bench:15};
 const TIER_VALUE_BOUNDS = {
   superstar:{min:86, max:100},
@@ -1932,14 +2169,16 @@ const STAT_WEIGHTS = {ppg:1.55, rpg:1.15, apg:1.35, def:3.75};
 function statComposite(p){
   return p.ppg*STAT_WEIGHTS.ppg + p.rpg*STAT_WEIGHTS.rpg + p.apg*STAT_WEIGHTS.apg + p.def*STAT_WEIGHTS.def;
 }
-function tierStatRange(tier){
-  const vals = MASTER.filter(p=>p.tier===tier).map(statComposite);
-  return {min:Math.min(...vals), max:Math.max(...vals)};
+function tierStatRange(players, tier){
+  const vals = players.filter(p=>p.tier===tier).map(statComposite);
+  return vals.length ? {min:Math.min(...vals), max:Math.max(...vals)} : {min:0, max:1};
 }
-const TIER_STAT_RANGES = Object.fromEntries(Object.keys(TIER_BASE).map(t=>[t, tierStatRange(t)]));
-function statBasedTrueValue(player){
+const TIER_STAT_RANGES = Object.fromEntries(Object.keys(TIER_BASE).map(t=>[t, tierStatRange(MASTER, t)]));
+const ALL_TIME_TIER_STAT_RANGES = Object.fromEntries(Object.keys(TIER_BASE).map(t=>[t, tierStatRange(ALL_TIME_MASTER, t)]));
+const MODERN_TIER_STAT_RANGES = Object.fromEntries(Object.keys(TIER_BASE).map(t=>[t, tierStatRange(MODERN_SUPERSTARS_MASTER, t)]));
+function statBasedTrueValue(player, ranges=TIER_STAT_RANGES){
   const bounds = TIER_VALUE_BOUNDS[player.tier];
-  const range = TIER_STAT_RANGES[player.tier];
+  const range = ranges[player.tier] || TIER_STAT_RANGES[player.tier];
   const rawNorm = range.max===range.min ? 0.5 : (statComposite(player)-range.min)/(range.max-range.min);
   const norm = clamp(rawNorm,0,1);
   return clamp(Math.round(bounds.min + norm*(bounds.max-bounds.min)), bounds.min, bounds.max);
@@ -2021,14 +2260,14 @@ function normalizedPlayerName(name){
     .toLowerCase();
 }
 const MASTER_BY_NORMALIZED_NAME = new Map(MASTER.map(p => [normalizedPlayerName(p.name), p]));
-function playerToDraftEntry(p, idx){
+function playerToDraftEntry(p, idx, ranges=TIER_STAT_RANGES){
   return {
     id: "p"+idx,
     name:p.name,
     pos:p.pos,
     positions:(p.positions || [p.pos]).slice(),
     tier:p.tier,
-    trueValue: statBasedTrueValue(p),
+    trueValue: statBasedTrueValue(p, ranges),
     ppg:p.ppg,
     rpg:p.rpg,
     apg:p.apg,
@@ -2077,7 +2316,25 @@ function buildCustomPoolResult(customOrder){
     }
   };
 }
-function buildPool(minPlayers=10){
+function buildAllTimePool(minPlayers=10){
+  const needed = Math.max(10, Math.min(ALL_TIME_MASTER.length, Number(minPlayers) || 10));
+  const selected = shuffle(ALL_TIME_MASTER).slice(0, needed);
+  return {
+    profile:{name:'All-Time Greats', desc:'Random prime-season legends from an all-time top-100 style pool.'},
+    order:selected.map((p, idx)=>playerToDraftEntry(p, idx, ALL_TIME_TIER_STAT_RANGES))
+  };
+}
+function buildModernSuperstarsPool(minPlayers=10){
+  const needed = Math.max(10, Math.min(MODERN_SUPERSTARS_MASTER.length, Number(minPlayers) || 10));
+  const selected = shuffle(MODERN_SUPERSTARS_MASTER).slice(0, needed);
+  return {
+    profile:{name:'Modern Superstars', desc:'Random 2000s-and-newer stars from a modern superstar pool.'},
+    order:selected.map((p, idx)=>playerToDraftEntry(p, idx, MODERN_TIER_STAT_RANGES))
+  };
+}
+function buildPool(minPlayers=10, draftPool='current'){
+  if(draftPool === 'allTime') return buildAllTimePool(minPlayers);
+  if(draftPool === 'modern') return buildModernSuperstarsPool(minPlayers);
   const profile = pick(POOL_PROFILES);
   const selected = [];
   const selectedNames = new Set();
@@ -2098,7 +2355,7 @@ function buildPool(minPlayers=10){
 
 const POS_INDEX = {G:0, F:1, C:2};
 const ROSTER_LAYOUT = ['G','G','F','F','C'];
-const FRIEND_SIDES = ['host','guest','player3','player4','player5'];
+const FRIEND_SIDES = ['host','guest','player3','player4','player5','player6','player7','player8','player9','player10'];
 const DEFAULT_BUDGET = 20;
 const NO_OPEN_BID_AUTOFILL_THRESHOLD = 4;
 const MULTI_TEAM_AUCTION_TIMEOUT_MS = 3000;
@@ -2199,9 +2456,10 @@ function teamAxes(game, side, maxes){
 function gameSides(game){ return game.sides || ['host','guest']; }
 function makeSideMap(sides, valueFactory){ return Object.fromEntries(sides.map(side=>[side, valueFactory(side)])); }
 function normalizeRoomOptions(options={}){
-  const maxTeams = clamp(Math.floor(Number(options.maxTeams || 2)), 2, 5);
+  const maxTeams = clamp(Math.floor(Number(options.maxTeams || 2)), 2, 10);
   const budget = clamp(Math.floor(Number(options.budget || DEFAULT_BUDGET)), ROSTER_LAYOUT.length, 99);
-  return {maxTeams, budget};
+  const draftPool = ['allTime','modern'].includes(options.draftPool) ? options.draftPool : 'current';
+  return {maxTeams, budget, draftPool};
 }
 function joinedSides(game){
   const sides = gameSides(game);
@@ -2438,12 +2696,13 @@ function buildResults(game){
 function newRoomGame(code, options={}){
   const roomOptions = normalizeRoomOptions(options);
   const sides = FRIEND_SIDES.slice(0, roomOptions.maxTeams);
-  const pool = options.customPool || buildPool(sides.length * ROSTER_LAYOUT.length);
+  const pool = options.customPool || buildPool(sides.length * ROSTER_LAYOUT.length, roomOptions.draftPool);
   const {profile, order} = pool;
   return {
     code, matchType: options.matchType || 'friend', profileName: profile.name, status:'waiting', guestJoined:false, order,
     pretendBot: !!options.pretendBot,
     customOrderNames: options.customOrderNames || null,
+    draftPool: options.customPool ? 'custom' : roomOptions.draftPool,
     maxTeams: roomOptions.maxTeams,
     sides,
     joined: makeSideMap(sides, side=>side === 'host'),
@@ -2730,7 +2989,7 @@ function stateForClient(game, side, connected){
   }));
   return {
     type:'state', roomCode: game.code, matchType: game.matchType || 'friend', pretendBot: !!game.pretendBot, side, status: game.status, over: game.over, connected,
-    maxTeams: game.maxTeams || 2, sides, teams,
+    maxTeams: game.maxTeams || 2, sides, teams, draftPool: game.draftPool || 'current', profileName: game.profileName || '',
     draftedCount: sides.reduce((sum, s)=>sum + game.rosters[s].length, 0), orderLength: game.order.length,
     hasSkippedPlayers: !!game.hasSkippedPlayers, visibleAutoFill: !!visibleAutoFillSide(game),
     names,
@@ -2817,6 +3076,7 @@ export class AuctionRoom {
           matchType,
           maxTeams: roomOptions.maxTeams,
           budget: roomOptions.budget,
+          draftPool: roomOptions.draftPool,
           customPool: customPoolResult ? customPoolResult.pool : null,
           customOrderNames: customPoolResult ? customPoolResult.customOrderNames : null,
           pretendBot: !!initOptions.pretendBot
@@ -3064,11 +3324,13 @@ export class AuctionRoom {
     const previousCustomOrderNames = this.game.customOrderNames || null;
     const previousMaxTeams = this.game.maxTeams || 2;
     const previousBudget = this.game.startingBudgets?.host || DEFAULT_BUDGET;
+    const previousDraftPool = this.game.draftPool || 'current';
     const customPoolResult = previousCustomOrderNames ? buildCustomPoolResult(previousCustomOrderNames) : null;
     const freshGame = newRoomGame(code, {
       matchType: previousMatchType,
       maxTeams: previousMaxTeams,
       budget: previousBudget,
+      draftPool: previousDraftPool,
       pretendBot: previousPretendBot,
       customPool: customPoolResult && customPoolResult.ok ? customPoolResult.pool : null,
       customOrderNames: customPoolResult && customPoolResult.ok ? customPoolResult.customOrderNames : null

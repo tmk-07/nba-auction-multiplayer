@@ -3286,10 +3286,12 @@ function opponentDisplayName(state){
 function readFriendRoomSettings(){
   const playerSelect = document.getElementById('advancedPlayerCountSelect');
   const budgetInput = document.getElementById('advancedBudgetInput');
-  const maxTeams = Math.max(2, Math.min(5, Number(playerSelect ? playerSelect.value : 2) || 2));
+  const draftPoolSelect = document.getElementById('advancedDraftPoolSelect');
+  const maxTeams = Math.max(2, Math.min(10, Number(playerSelect ? playerSelect.value : 2) || 2));
   const budget = Math.max(5, Math.min(99, Math.floor(Number(budgetInput ? budgetInput.value : 20) || 20)));
+  const draftPool = draftPoolSelect && ['allTime','modern'].includes(draftPoolSelect.value) ? draftPoolSelect.value : 'current';
   if(budgetInput) budgetInput.value = String(budget);
-  return {maxTeams, budget};
+  return {maxTeams, budget, draftPool};
 }
 
 function teamDisplayName(state, side, fallback='Opponent'){
