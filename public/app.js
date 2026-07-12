@@ -3874,6 +3874,65 @@ function renderFriendResults(state){
 
   LAST_SHARE_RESULT = null;
 
+  if(teams.length === 2){
+    const mySide = state.side;
+    const oppTeam = teams.find(team=>team.side !== mySide) || teams[1] || teams[0];
+    const oppSide = oppTeam?.side;
+    const oppName = teamName(oppSide);
+    const labels = ['Scoring','Rebounding','Playmaking','Star Power','Defense'];
+    const myScore = r.scores?.[mySide] || 0;
+    const oppScore = r.scores?.[oppSide] || 0;
+    const myAxes = r.axes?.[mySide] || [0,0,0,0,0];
+    const oppAxes = r.axes?.[oppSide] || [0,0,0,0,0];
+    const myRows = r.rows?.[mySide] || [];
+    const oppRows = r.rows?.[oppSide] || [];
+
+    LAST_SHARE_RESULT = {
+      winnerLabel,
+      winnerClass,
+      myRatingLabel:'Your Team Rating',
+      oppRatingLabel:`${oppName} Team Rating`,
+      myScore,
+      oppScore,
+      labels,
+      myAxes,
+      oppAxes,
+      leftTitle:'Your Roster',
+      rightTitle:`${oppName} Roster`,
+      leftRows:myRows,
+      rightRows:oppRows,
+      legendOpponent:oppName
+    };
+
+    rs.innerHTML = `
+      <div class="results">
+        <div class="winner-banner ${winnerClass}">${winnerLabel}</div>
+        <div class="scoreboard" style="margin-top:6px; margin-bottom:6px;">
+          <div class="score-card you">
+            <div class="label">Your Team Rating</div>
+            <div class="value mono">${myScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+          </div>
+          <div class="score-card bot">
+            <div class="label">${oppName} Team Rating</div>
+            <div class="value mono">${oppScore}<span style="font-size:14px; color:var(--chalk-dim);">/100</span></div>
+          </div>
+        </div>
+        <h2>Team Shape</h2>
+        ${buildRadarSVG(labels, myAxes, oppAxes)}
+        <div style="text-align:center; font-size:12px; color:var(--chalk-dim); margin-top:4px;">
+          <span style="color:var(--hardwood);">■</span> You &nbsp;&nbsp; <span style="color:#7C93C9;">■</span> ${oppName}
+        </div>
+        ${pairedRosterTable('Your Roster', `${oppName} Roster`, myRows, oppRows)}
+        <div class="results-actions">
+          <button class="btn restart-btn" style="background:var(--hardwood); color:#1a1206; border:none;" onclick="friendPlayAgain()">Play Again</button>
+          <button class="btn share-results-btn" onclick="openShareModal()">Share Results</button>
+          <button class="btn restart-btn" onclick="showLanding()">Back to Home</button>
+        </div>
+        <div class="rematch-status">${playAgainStatus}</div>
+      </div>`;
+    return;
+  }
+
   const rankCard = (title, ranks=[]) => `
     <div class="category-rank-card">
       <h3>${title}</h3>

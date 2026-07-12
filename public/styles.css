@@ -2280,6 +2280,41 @@
   }
 }
 
+@media (max-width:560px){
+  .auction-top{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  .bid-display{
+    text-align:left;
+  }
+  .auction-controls{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    gap:10px;
+  }
+  .auction-controls .btn{
+    width:100%;
+    min-width:0;
+    padding-left:8px;
+    padding-right:8px;
+  }
+  .auction-controls .custom-bid-control{
+    grid-column:auto;
+    justify-content:center;
+    min-width:0;
+    gap:1px;
+    padding-left:4px;
+    padding-right:4px;
+  }
+  .auction-controls .custom-bid-label{
+    font-size:12px;
+  }
+  .auction-controls .custom-bid-input{
+    width:38px;
+  }
+}
+
 /* Hide number input spinner arrows */
 .custom-bid-input::-webkit-outer-spin-button,
 .custom-bid-input::-webkit-inner-spin-button,
