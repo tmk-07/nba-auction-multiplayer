@@ -719,6 +719,79 @@
   transform:translateX(15px);
 }
 
+@media (max-width:560px){
+  .results .paired-rosters{
+    overflow-x:visible;
+  }
+  .results .paired-roster-table{
+    min-width:0;
+    font-size:11px;
+  }
+  .results .paired-roster-table .paired-paid-col{
+    width:18%;
+  }
+  .results .paired-roster-table .paired-player-col{
+    width:29%;
+  }
+  .results .paired-roster-table .paired-slot-col{
+    width:6%;
+  }
+  .results .paired-roster-table th,
+  .results .paired-roster-table td{
+    padding-left:2px;
+    padding-right:2px;
+    overflow-wrap:normal;
+    word-break:normal;
+  }
+  .results .paired-roster-table .paired-left-player{
+    padding-right:8px;
+  }
+  .results .paired-roster-table .paired-right-player{
+    padding-left:8px;
+  }
+  .results .paired-roster-table .paired-left-paid{
+    text-align:right;
+  }
+  .results .paired-roster-table .paired-right-paid{
+    text-align:left;
+  }
+  .results .paired-roster-table .paired-slot{
+    padding-left:0;
+    padding-right:0;
+    text-align:center;
+  }
+  .results .paired-roster-table th.paired-slot{
+    font-size:10px;
+  }
+  .results .paid-align{
+    column-gap:3px;
+  }
+  .results .paid-align-left{
+    grid-template-columns:28px 38px;
+    justify-content:end;
+    text-align:right;
+  }
+  .results .paid-align-right{
+    grid-template-columns:38px 28px;
+    justify-content:start;
+    text-align:left;
+  }
+  .results .paid-align-left .paired-price-slot,
+  .results .paid-align-left .paired-tag-slot{
+    text-align:right;
+  }
+  .results .paid-align-right .paired-price-slot,
+  .results .paid-align-right .paired-tag-slot{
+    text-align:left;
+  }
+  .results .paid-align-left .paired-tag-slot{
+    transform:translateX(-6px);
+  }
+  .results .paid-align-right .paired-tag-slot{
+    transform:translateX(6px);
+  }
+}
+
 /* v2.6.0 online setup split */
 .online-panel{
   margin-top:18px;
