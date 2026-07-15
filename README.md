@@ -6,7 +6,7 @@ Live site: [startingfive.tkimify.com](https://startingfive.tkimify.com)
 
 ## Why I Built It
 
-I wanted to turn the quick "who would you draft?" basketball debate into a playable auction game with real constraints: budget management, roster construction, positional fit, multiplayer timing, and shareable results. The project is intentionally lightweight on the frontend and uses Cloudflare's edge stack for real-time rooms.
+The idea originated from influencers on Instagram/TikTok where two players stting next to each other would bid on NBA players to construct rosters. I liked the concept of the game and immediately thought of making the game more accessible - in the aspect of easily setting up the game environment online, and also allowing individual play against a bot. The idea expanded beyond the original game I saw online - roster ratings are formulaically calculated after each game, drafts can now be played with up to 10 players, and you can now search for an opponent online. This was an exciting project to build and watch my ideas come to life. Seeing the app slowly grow in my circles has been super fun to see and has reminded me of my love for building things for the sake of implementing a fun idea I have.
 
 ## Tech Stack
 
@@ -21,19 +21,13 @@ This app does not use a frontend framework. Most of the complexity lives in game
 
 ## Features
 
-- **Play vs Bot:** Draft against a bot with budget-aware bidding behavior.
-- **Play Online / Friend Mode:** Create a private room code and draft live with friends.
-- **Up to 10 multiplayer teams:** Rooms can scale beyond the original 1v1 format.
-- **Bot fill-ins:** Add bots to multiplayer rooms, including when players disconnect.
-- **Custom game settings:** Configure player count and auction budget.
-- **Draft pools:** Current NBA pool, Modern Superstars, All-Time Greats, and hidden custom pool support.
-- **Sequential auction flow:** Players are revealed one at a time instead of showing a full draft board.
-- **Budget enforcement:** The game reserves enough money for remaining roster slots and validates every bid.
-- **Roster rules:** Each team drafts 2 guards, 2 forwards, and 1 center.
-- **Position flexibility:** Players can have multiple eligible positions, with out-of-position penalties.
-- **Results screen:** Compares team rating and category strengths, with 2-player and multi-team layouts.
+- **Play vs Bot:** Draft against a bot with budget-aware bidding behavior and multiple strategies varying in aggressiveness and budget conservation.
+- **Play Online / Friend Mode:** 'Find a Game' feature to connect with a random player online, or create a private room code and draft live with friends.
+- **Up to 10 multiplayer teams:** Draft with up to 10 friends, filling in extra spots with bots as necessary.
+- **Custom game settings:** Configure player count, auction budget, and draft pool (Current NBA pool, Modern Superstars, All-Time Greats, hidden custom pool feature).
+- **Draft pools:** Draft pool player quality makeup shifts every game, ensuring variability in gameplay and roster construction.
+- **Results screen:** Compares team rating and category strengths using pre-determined player ratings calculated using real-life statistics.
 - **Shareable PNG export:** Download a compact image of the final draft results.
-- **Mobile responsive UI:** Tuned for Safari/iPhone auction controls and results views.
 
 ## Code Structure
 
@@ -103,12 +97,3 @@ Wrangler deploys:
 - `public/` as static assets
 - `src/worker.js` as the Worker entry point
 - `AuctionRoom` as the Durable Object class for multiplayer rooms
-
-## What This Project Demonstrates
-
-- Building a complete browser game without a frontend framework
-- Designing and maintaining real-time multiplayer state
-- Using Cloudflare Workers and Durable Objects for low-latency room infrastructure
-- Managing game rules across both local and server-authoritative modes
-- Creating responsive UI for desktop and mobile Safari
-- Iterating on product details like reconnection, bot fill-ins, share images, and multiplayer result layouts
