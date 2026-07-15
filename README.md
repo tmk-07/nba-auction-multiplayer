@@ -1,74 +1,114 @@
-# NBA Auction Multiplayer
+# Starting Five
 
-This version keeps the original **Play vs Bot** mode and adds **Play vs Friend** with private room codes.
+Starting Five is a real-time NBA auction draft game where players build a 5-man roster under a fixed budget, then compare team quality across scoring, rebounding, playmaking, star power, defense, and total team rating.
 
-## What changed
+Live site: [startingfive.tkimify.com](https://startingfive.tkimify.com)
 
-- Landing page with two options: Play vs Bot / Play vs Friend
-- Friend mode lets one player create a code and the other join it
-- A Cloudflare Worker + Durable Object owns each room's live game state
-- The server validates bids, passes, budgets, roster slots, hidden true values, and results
-- The frontend only receives the current public player, rosters, bids, and final derived results
+## Why I Built It
 
-## Recommended deployment: one Cloudflare Worker with static assets
+I wanted to turn the quick "who would you draft?" basketball debate into a playable auction game with real constraints: budget management, roster construction, positional fit, multiplayer timing, and shareable results. The project is intentionally lightweight on the frontend and uses Cloudflare's edge stack for real-time rooms.
 
-This is the cleanest path because the HTML and multiplayer API live on the same origin.
+## Tech Stack
 
-```bash
-cd ~/Downloads/nba-auction-multiplayer
-npm install
-npm run deploy
+- **Frontend:** HTML, CSS, and vanilla JavaScript
+- **Backend:** Cloudflare Workers
+- **Real-time multiplayer:** WebSockets
+- **Stateful rooms:** Cloudflare Durable Objects
+- **Hosting:** Cloudflare Worker static assets
+- **Tooling:** Wrangler, npm
+
+This app does not use a frontend framework. Most of the complexity lives in game state, auction validation, roster logic, multiplayer synchronization, and responsive UI behavior.
+
+## Features
+
+- **Play vs Bot:** Draft against a bot with budget-aware bidding behavior.
+- **Play Online / Friend Mode:** Create a private room code and draft live with friends.
+- **Up to 10 multiplayer teams:** Rooms can scale beyond the original 1v1 format.
+- **Bot fill-ins:** Add bots to multiplayer rooms, including when players disconnect.
+- **Custom game settings:** Configure player count and auction budget.
+- **Draft pools:** Current NBA pool, Modern Superstars, All-Time Greats, and hidden custom pool support.
+- **Sequential auction flow:** Players are revealed one at a time instead of showing a full draft board.
+- **Budget enforcement:** The game reserves enough money for remaining roster slots and validates every bid.
+- **Roster rules:** Each team drafts 2 guards, 2 forwards, and 1 center.
+- **Position flexibility:** Players can have multiple eligible positions, with out-of-position penalties.
+- **Results screen:** Compares team rating and category strengths, with 2-player and multi-team layouts.
+- **Shareable PNG export:** Download a compact image of the final draft results.
+- **Mobile responsive UI:** Tuned for Safari/iPhone auction controls and results views.
+
+## Code Structure
+
+```text
+public/
+  index.html        Main app shell and modal/footer markup
+  styles.css        Responsive UI, results layouts, share-card export styling
+  app.js            Frontend state, bot mode, rendering, local auction flow, share export
+  logo.png          Starting Five logo asset
+  favicon.png       Browser icon
+  tkimifylight.png  Footer brand mark
+
+src/
+  worker.js         Cloudflare Worker API, WebSocket handling, Durable Object room logic
+
+wrangler.toml       Cloudflare Worker, asset, and Durable Object configuration
+package.json        npm scripts and Wrangler dependency
 ```
 
-That deploys:
+## Architecture
 
-- `public/index.html` as the site
-- `src/worker.js` as the API/WebSocket server
-- one Durable Object room per game code
+The app is split into two main runtime paths:
 
-## Local development
+1. **Client-only bot mode**
+   - `public/app.js` owns local game state.
+   - Bot bidding, auction turns, roster assignment, and final scoring happen in the browser.
+
+2. **Authoritative multiplayer mode**
+   - `src/worker.js` owns room state inside a Durable Object.
+   - Clients connect over WebSockets.
+   - The server validates room joins, bids, passes, timers, budgets, roster slots, bot actions, reconnects, and final results.
+
+This keeps friend-mode games synchronized and prevents clients from deciding hidden auction outcomes on their own.
+
+## Game Logic Highlights
+
+- **Auction safety:** The max bid calculation always preserves at least `$1` per remaining roster slot.
+- **Skipped players:** If everyone passes before a bid, the player can move back into the remaining pool instead of ending the draft immediately.
+- **Roster optimization:** Flexible players are assigned into guard/forward/center slots based on eligibility and positional penalties.
+- **Scoring model:** Final ratings are derived from roster value and category stats, normalized against the draft pool.
+- **Multi-team results:** 3+ player games rank every team by total rating and each category.
+- **2-player results:** 1v1 games use a focused head-to-head layout with a radar chart and paired rosters.
+
+## Local Development
 
 ```bash
-cd ~/Downloads/nba-auction-multiplayer
 npm install
 npm run dev
 ```
 
-Then open the Wrangler local URL in two browser tabs. Create a room in one tab and join it in the other.
-
-## Keeping your current Cloudflare Pages site
-
-You can also keep Pages for the static site and deploy only the Worker separately. In that setup, the frontend needs to know the Worker URL.
-
-Open DevTools on the Pages site and run this once:
-
-```js
-localStorage.setItem('NBA_AUCTION_API_BASE', 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev');
-location.reload();
-```
-
-For production, you can hardcode the Worker URL in `public/index.html` by changing:
-
-```js
-const MULTIPLAYER_API_BASE = window.MULTIPLAYER_API_BASE || localStorage.getItem('NBA_AUCTION_API_BASE') || '';
-```
-
-into:
-
-```js
-const MULTIPLAYER_API_BASE = 'https://YOUR-WORKER.YOUR-SUBDOMAIN.workers.dev';
-```
-
-## GitHub notes
-
-If you migrate to Worker static assets, commit the whole project folder structure:
+Then open the Wrangler local URL, usually:
 
 ```text
-public/index.html
-src/worker.js
-wrangler.toml
-package.json
-README.md
+http://localhost:8787
 ```
 
-Then deploy with `npm run deploy`.
+For multiplayer testing, open the site in two browser tabs or use a phone on the same Wi-Fi network with the Mac's local IP address.
+
+## Deployment
+
+```bash
+npm run deploy
+```
+
+Wrangler deploys:
+
+- `public/` as static assets
+- `src/worker.js` as the Worker entry point
+- `AuctionRoom` as the Durable Object class for multiplayer rooms
+
+## What This Project Demonstrates
+
+- Building a complete browser game without a frontend framework
+- Designing and maintaining real-time multiplayer state
+- Using Cloudflare Workers and Durable Objects for low-latency room infrastructure
+- Managing game rules across both local and server-authoritative modes
+- Creating responsive UI for desktop and mobile Safari
+- Iterating on product details like reconnection, bot fill-ins, share images, and multiplayer result layouts
