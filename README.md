@@ -8,6 +8,12 @@ Live site: [startingfive.tkimify.com](https://startingfive.tkimify.com)
 
 The idea originated from influencers on Instagram/TikTok where two players stting next to each other would bid on NBA players to construct rosters. I liked the concept of the game and immediately thought of making the game more accessible - in the aspect of easily setting up the game environment online, and also allowing individual play against a bot. The idea expanded beyond the original game I saw online - roster ratings are formulaically calculated after each game, drafts can now be played with up to 10 players, and you can now search for an opponent online. This was an exciting project to build and watch my ideas come to life. Seeing the app slowly grow in my circles has been super fun to see and has reminded me of my love for building things for the sake of implementing a fun idea I have.
 
+## What I learned
+
+While building multiplayer features of this game, I learned the fundamentals of using WebSockets to set game states and communicate player actions between users.
+I learned about building bots that make the game fun for the user. These bots determine bid amount contextually, using their estimated value of a given NBA player as well as both teams' current budgets and roster composition. I ensured that these bots' strategies differed game to game, reducing a stale gameplay experience.
+Leveraging AI was a key part of building this app - Codex helepd with generating the code structure and testing certain features, allowing me to explore all the ideas I had efficiently. I learned how to effectively use AI tools like Codex to quickly test flow of new features, iterate on small UI details, and ultimately bring an idea to life.
+
 ## Tech Stack
 
 - **Frontend:** HTML, CSS, and vanilla JavaScript
